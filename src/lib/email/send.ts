@@ -17,10 +17,12 @@ export type EmailResult =
  */
 export async function sendTemplatedEmail(opts: {
   templateKey: string;
-  to: string;
+  to: string | string[];
   vars: Record<string, string | number | null | undefined>;
   dedupeKey: string;
+  replyTo?: string;
 }): Promise<EmailResult> {
+  const recipients = Array.isArray(opts.to) ? opts.to : [opts.to];
   const env = serverEnv();
   const db = createServiceClient();
   let subjectTpl: string | undefined;
@@ -30,7 +32,7 @@ export async function sendTemplatedEmail(opts: {
     const { data: existing } = await db.from("email_delivery_logs").select("id, status, attempts").eq("dedupe_key", opts.dedupeKey).maybeSingle();
     if (existing?.status === "sent") return { status: "already_sent" };
     if (!existing) {
-      const { error } = await db.from("email_delivery_logs").insert({ template_key: opts.templateKey, dedupe_key: opts.dedupeKey, recipient: opts.to, status: "pending" });
+      const { error } = await db.from("email_delivery_logs").insert({ template_key: opts.templateKey, dedupe_key: opts.dedupeKey, recipient: recipients.join(", "), status: "pending" });
       if (error && error.code === "23505") {
         const { data: again } = await db.from("email_delivery_logs").select("status").eq("dedupe_key", opts.dedupeKey).maybeSingle();
         if (again?.status === "sent") return { status: "already_sent" };
@@ -61,7 +63,7 @@ export async function sendTemplatedEmail(opts: {
   try {
     const resend = new Resend(env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send(
-      { from: env.EMAIL_FROM, to: [opts.to], subject, text, html },
+      { from: env.EMAIL_FROM, to: recipients, subject, text, html, replyTo: opts.replyTo ?? env.EMAIL_REPLY_TO ?? env.ADMIN_NOTIFICATION_EMAIL[0] },
       { idempotencyKey: opts.dedupeKey.slice(0, 256) },
     );
     if (error) throw new Error(error.message);
@@ -75,9 +77,14 @@ export async function sendTemplatedEmail(opts: {
   }
 }
 
-/** Admin notification: never includes applicant personal details. */
-export async function notifyAdmins(event: string, reference: string, dedupeKey: string) {
+/** Organiser inbox alerts. Application alerts carry no personal details beyond a reference. */
+export async function notifyAdmins(opts: {
+  templateKey?: "admin_notification" | "admin_contact_enquiry";
+  vars: Record<string, string | number | null | undefined>;
+  dedupeKey: string;
+  replyTo?: string;
+}) {
   const to = serverEnv().ADMIN_NOTIFICATION_EMAIL;
-  if (!to) return { status: "not_configured" as const };
-  return sendTemplatedEmail({ templateKey: "admin_notification", to, vars: { event, reference }, dedupeKey });
+  if (!to.length) return { status: "not_configured" as const };
+  return sendTemplatedEmail({ templateKey: opts.templateKey ?? "admin_notification", to, vars: opts.vars, dedupeKey: opts.dedupeKey, replyTo: opts.replyTo });
 }

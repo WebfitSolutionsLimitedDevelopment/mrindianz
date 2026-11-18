@@ -30,7 +30,7 @@ export async function submitContact(_prev: ContactState, formData: FormData): Pr
 
   const { data, error } = await db
     .from("contact_submissions")
-    .insert({ name: input.name, email: input.email, subject: input.subject, message: input.message })
+    .insert({ name: input.name, email: input.email, subject: `[${input.enquiryType}] ${input.subject}`.slice(0, 150), message: input.message })
     .select("id")
     .single();
   if (error || !data) {
@@ -42,6 +42,11 @@ export async function submitContact(_prev: ContactState, formData: FormData): Pr
     templateKey: "contact_acknowledgement", to: input.email, dedupeKey: `contact_ack:${data.id}`,
     vars: { name: input.name.split(" ")[0], subject: input.subject },
   });
-  await notifyAdmins("New contact form message", `Contact ${data.id.slice(0, 8)}`, `contact_admin:${data.id}`);
+  await notifyAdmins({
+    templateKey: "admin_contact_enquiry",
+    dedupeKey: `contact_admin:${data.id}`,
+    replyTo: input.email,
+    vars: { enquiry_type: input.enquiryType, name: input.name, email: input.email, subject: input.subject, message: input.message },
+  });
   return { status: "success", emailed: ack.status === "sent" };
 }

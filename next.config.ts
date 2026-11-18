@@ -20,7 +20,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'" + (process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""),
       "style-src 'self' 'unsafe-inline'",
-      `img-src 'self' data: blob: https://www.missindiasouthpacific.com${supabaseHost ? ` https://${supabaseHost}` : ""}`,
+      `img-src 'self' data: blob:${supabaseHost ? ` https://${supabaseHost}` : ""}`,
       `media-src 'self'${supabaseHost ? ` https://${supabaseHost}` : ""}`,
       "font-src 'self'",
       `connect-src 'self'${supabaseHost ? ` https://${supabaseHost} wss://${supabaseHost}` : ""}`,

@@ -14,13 +14,24 @@ async function setStatus(formData: FormData) {
   revalidatePath("/admin/messages");
 }
 
-export default async function Messages() {
+const TYPES = ["General", "Applying", "Sponsorship & partnership", "Media", "People's Choice", "Tickets", "Website support"];
+
+export default async function Messages({ searchParams }: { searchParams: Promise<{ type?: string; status?: string }> }) {
   await requirePermission("contact:read");
+  const sp = await searchParams;
   const db = await createUserClient();
-  const { data } = await db.from("contact_submissions").select("*").neq("status", "archived").order("created_at", { ascending: false }).limit(100);
+  let q = db.from("contact_submissions").select("*").order("created_at", { ascending: false }).limit(200);
+  q = sp.status === "archived" ? q.eq("status", "archived") : q.neq("status", "archived");
+  if (sp.type && TYPES.includes(sp.type)) q = q.like("subject", `[${sp.type}]%`);
+  const { data } = await q;
   return (
     <>
-      <PageHeader title="Contact messages" description="Messages from the public contact form." />
+      <PageHeader title="Enquiries" description="Messages from the website contact form, including sponsorship and partnership enquiries. Each one is also emailed to the organiser inbox when email is configured." />
+      <nav className="mb-6 flex flex-wrap gap-2 text-xs" aria-label="Filter enquiries">
+        <a href="/admin/messages" className={`rounded-full border px-3 py-1.5 ${!sp.type && !sp.status ? "border-gold text-gold" : "border-line"}`}>All open</a>
+        {TYPES.map((t) => <a key={t} href={`/admin/messages?type=${encodeURIComponent(t)}`} className={`rounded-full border px-3 py-1.5 ${sp.type === t ? "border-gold text-gold" : "border-line"}`}>{t}</a>)}
+        <a href="/admin/messages?status=archived" className={`rounded-full border px-3 py-1.5 ${sp.status === "archived" ? "border-gold text-gold" : "border-line"}`}>Archived</a>
+      </nav>
       <div className="space-y-4">
         {(data ?? []).map((m) => (
           <Card key={m.id} title={m.subject} actions={<StatusPill tone={m.status === "new" ? "gold" : "neutral"}>{m.status}</StatusPill>}>

@@ -97,10 +97,17 @@ export const EMAIL_TEMPLATE_DEFAULTS: EmailTemplateDefault[] = [
     body: "Kia ora {{name}},\n\nThank you for contacting Mr. IndiaNZ. We have received your message about \"{{subject}}\" and will reply as soon as possible.\n\nNgā mihi,\nThe Mr. IndiaNZ team",
   },
   {
+    key: "admin_contact_enquiry",
+    name: "New enquiry (to organiser)",
+    description: "Sent to the organiser inbox for every contact form enquiry. Reply directly to answer the sender.",
+    subject: "[Mr. IndiaNZ enquiry] {{enquiry_type}}: {{subject}}",
+    body: "New enquiry from the Mr. IndiaNZ website.\n\nType: {{enquiry_type}}\nName: {{name}}\nEmail: {{email}}\nSubject: {{subject}}\n\nMessage:\n{{message}}\n\nReply to this email to respond directly to {{name}}. All enquiries are also listed at {{site_url}}/admin/messages",
+  },
+  {
     key: "admin_notification",
     name: "Admin notification",
     description: "Internal notification. Contains no applicant personal details beyond a reference.",
     subject: "[Mr. IndiaNZ] {{event}}",
-    body: "{{event}}\n\nReference: {{reference}}\n\nOpen the admin dashboard to review: {{site_url}}/admin",
+    body: "{{event}}\n\nReference: {{reference}}\n{{details}}\n\nFor privacy, applicant details are not included in this email. Sign in to review: {{site_url}}/admin/applications",
   },
 ];

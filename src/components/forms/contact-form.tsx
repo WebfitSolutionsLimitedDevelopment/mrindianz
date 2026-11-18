@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { submitContact, type ContactState } from "@/app/(site)/contact/actions";
 import { Button } from "@/components/ui/button";
 import { Field, describedBy, inputClasses } from "./field";
+import { ENQUIRY_TYPES } from "@/lib/validation/contact";
 
 export function ContactForm({ defaultSubject }: { defaultSubject?: string }) {
   const [state, action, pending] = useActionState<ContactState, FormData>(submitContact, { status: "idle" });
@@ -12,7 +13,7 @@ export function ContactForm({ defaultSubject }: { defaultSubject?: string }) {
 
   if (state.status === "success") {
     return (
-      <div role="status" className="border border-gold-deep/60 bg-ivory-2 p-8">
+      <div role="status" className="rounded-2xl bg-ivory-2 p-8">
         <h2 className="text-3xl">Thank you — your message has been received.</h2>
         <p className="mt-3 text-stone">{state.emailed ? "We've sent a confirmation to your email address." : "We'll reply to the email address you provided as soon as possible."}</p>
       </div>
@@ -34,6 +35,11 @@ export function ContactForm({ defaultSubject }: { defaultSubject?: string }) {
           <input id="c-email" name="email" type="email" required maxLength={254} autoComplete="email" inputMode="email" className={inputClasses} aria-invalid={!!fe.email} aria-describedby={describedBy("c-email", null, fe.email)} />
         </Field>
       </div>
+      <Field id="c-type" label="Enquiry type" required error={fe.enquiryType}>
+        <select id="c-type" name="enquiryType" defaultValue={/partner|sponsor/i.test(defaultSubject ?? "") ? "Sponsorship & partnership" : /interest|apply/i.test(defaultSubject ?? "") ? "Applying" : "General"} className={inputClasses}>
+          {ENQUIRY_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </Field>
       <Field id="c-subject" label="Subject" required error={fe.subject}>
         <input id="c-subject" name="subject" required maxLength={150} defaultValue={defaultSubject} className={inputClasses} aria-invalid={!!fe.subject} aria-describedby={describedBy("c-subject", null, fe.subject)} />
       </Field>

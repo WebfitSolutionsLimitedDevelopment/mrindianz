@@ -14,7 +14,13 @@ const schema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20).optional(),
   RESEND_API_KEY: z.string().min(10).optional(),
   EMAIL_FROM: z.string().optional(),
-  ADMIN_NOTIFICATION_EMAIL: z.string().email().optional(),
+  // One or more addresses, comma separated, that receive new-application and enquiry alerts.
+  ADMIN_NOTIFICATION_EMAIL: z
+    .string()
+    .optional()
+    .transform((v) => (v ?? "").split(",").map((x) => x.trim()).filter(Boolean))
+    .pipe(z.array(z.email())),
+  EMAIL_REPLY_TO: z.email().optional().or(z.literal("").transform(() => undefined)),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   STRIPE_MODE: z.enum(["test", "live"]).optional(),

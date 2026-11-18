@@ -61,7 +61,6 @@ export default async function AboutPage() {
                     <img src={m.src} alt={m.alt} loading="lazy" className="aspect-[3/4] w-full object-cover" />
                   </figure>
                 ))}
-                <p className="col-span-2 text-xs text-stone">Miss India South Pacific 2026 Grand Finale.</p>
               </div>
             )}
           </div>

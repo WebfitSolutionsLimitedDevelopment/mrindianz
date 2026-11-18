@@ -125,7 +125,10 @@ export async function submitApplication(payload: unknown): Promise<SubmitResult>
     dedupeKey: `application_received:${app.id}`,
     vars: { first_name: (d.stageName ?? d.legalName).split(" ")[0], reference: app.reference },
   });
-  await notifyAdmins("New Mr. IndiaNZ application received", app.reference, `admin_new_application:${app.id}`);
+  await notifyAdmins({
+    dedupeKey: `admin_new_application:${app.id}`,
+    vars: { event: "New Mr. IndiaNZ application received", reference: app.reference, details: `Mr. Talent audition: ${s.talentAudition === "yes" ? "Yes" : "No"}` },
+  });
 
   return { ok: true, reference: app.reference, emailStatus: email.status === "failed" ? "failed" : email.status };
 }

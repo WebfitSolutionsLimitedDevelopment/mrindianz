@@ -80,10 +80,9 @@ export interface LegalSettings {
 export interface MediaItem { src: string; caption: string; alt: string }
 
 /**
- * Photography. Mr. IndiaNZ has no approved photography yet, so the hero uses a designed stage
- * backdrop. The legacy gallery uses the organiser's own Miss India South Pacific 2026 finale photos
- * (same organiser and production team), always captioned as such — never presented as Mr. IndiaNZ.
- * Replace any of these in Admin → Settings → Photography.
+ * Photography. Mr. IndiaNZ has no approved photography yet, so every image slot is empty and the
+ * site uses its designed stage backdrop. Add ONLY real, approved photographs of Mr. IndiaNZ (no
+ * AI-generated or stock people) in Admin → Settings → Photography.
  */
 export interface MediaSettings {
   heroImage: string | null;
@@ -161,14 +160,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   media: {
     heroImage: null,
     heroVideo: null,
-    ctaImage: "https://www.missindiasouthpacific.com/finale-2026/opening-lineup.webp",
-    legacy: [
-      { src: "https://www.missindiasouthpacific.com/finale-2026/opening-lineup.webp", alt: "Contestants from New Zealand, Fiji and Australia on stage at the Miss India South Pacific Grand Finale", caption: "Opening line-up" },
-      { src: "https://www.missindiasouthpacific.com/finale-2026/runway.webp", alt: "A runway presentation during the Miss India South Pacific Grand Finale", caption: "The runway" },
-      { src: "https://www.missindiasouthpacific.com/finale-2026/dance.webp", alt: "Dancers perform at the Miss India South Pacific Grand Finale", caption: "Live performance" },
-      { src: "https://www.missindiasouthpacific.com/finale-2026/cultural-round.webp", alt: "A colourful presentation during the cultural round", caption: "Cultural round" },
-      { src: "https://www.missindiasouthpacific.com/finale-2026/crowning.webp", alt: "The inaugural Miss India South Pacific crowning", caption: "The crowning" },
-    ],
+    ctaImage: null,
+    legacy: [],
   },
 };
 

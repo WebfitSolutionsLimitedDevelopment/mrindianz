@@ -198,9 +198,9 @@ export default async function HomePage() {
       )}
 
       {/* ───────────── LEGACY (organiser's photography) ───────────── */}
-      {media.legacy.length > 0 && (
-        <Section tone="cream" labelledBy="legacy-title">
-          <SectionHeading eyebrow="From the team behind Miss India South Pacific" id="legacy-title" title="A stage built by people who know pageantry." intro={sections.organiser?.content.body} />
+      <Section tone="cream" labelledBy="legacy-title">
+          <SectionHeading eyebrow="From the team behind Miss India South Pacific" id="legacy-title" title="A stage built by people who know pageantry." intro={sections.organiser?.content.body} className={media.legacy.length ? undefined : "mb-0"} />
+          {media.legacy.length > 0 && <>
           <div className="grid auto-rows-[11rem] grid-cols-2 gap-4 sm:auto-rows-[14rem] md:grid-cols-4">
             {media.legacy.slice(0, 5).map((m, i) => (
               <figure key={m.src} className={i === 0 ? "group relative col-span-2 row-span-2 overflow-hidden rounded-2xl" : "group relative overflow-hidden rounded-2xl"}>
@@ -209,9 +209,8 @@ export default async function HomePage() {
               </figure>
             ))}
           </div>
-          <p className="mt-5 text-xs text-stone">Photography: Miss India South Pacific 2026 Grand Finale, produced by {event.organiser}.</p>
+          </>}
         </Section>
-      )}
 
       {/* ───────────── JOURNEY ───────────── */}
       {journey.length > 0 && (
@@ -327,7 +326,6 @@ export default async function HomePage() {
       {/* ───────────── FINAL CTA ───────────── */}
       <section aria-labelledby="cta-title" className="on-dark relative isolate overflow-hidden bg-ink py-28 text-center text-ivory sm:py-40">
         <StageBackdrop image={media.ctaImage} />
-        {media.ctaImage && <p className="absolute bottom-3 right-4 z-10 text-[10px] text-white/50">Photo: Miss India South Pacific 2026 Grand Finale</p>}
         <div className="container-x relative">
           <p className="eyebrow eyebrow-dark">{event.finaleDisplay} · {event.venueShort}</p>
           <h2 id="cta-title" className="mx-auto mt-6 max-w-4xl text-[2.6rem] leading-[1.05] text-white sm:text-7xl">Your stage <em className="text-gold-gradient">awaits</em>.</h2>

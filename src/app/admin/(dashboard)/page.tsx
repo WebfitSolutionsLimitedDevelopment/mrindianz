@@ -25,7 +25,8 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
     return c ?? 0;
   };
 
-  const [total, fresh, shortlisted, confirmed, published, finance, orders, campaign, activity] = await Promise.all([
+  const showContact = can(session.roles, "contact:read");
+  const [total, fresh, shortlisted, confirmed, published, finance, orders, campaign, activity, newEnquiries, partnerEnquiries] = await Promise.all([
     showApps ? count("applications") : null,
     showApps ? count("applications", ["status", "new"]) : null,
     showApps ? count("applications", ["status", "shortlisted"]) : null,
@@ -35,6 +36,8 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
     showFinance ? db.from("voting_orders").select("public_ref, status, total_cents, total_votes, payment_mode, created_at, contestants(public_name)").order("created_at", { ascending: false }).limit(6) : null,
     db.from("voting_campaigns").select("name, status, opens_at, closes_at").eq("slug", activeCampaignSlug()).maybeSingle(),
     can(session.roles, "audit:read") ? db.from("audit_logs").select("action, entity_type, entity_id, created_at").order("created_at", { ascending: false }).limit(8) : null,
+    showContact ? count("contact_submissions", ["status", "new"]) : null,
+    showContact ? db.from("contact_submissions").select("id", { count: "exact", head: true }).like("subject", "[Sponsorship & partnership]%").neq("status", "archived").then((r) => r.count ?? 0) : null,
   ]);
 
   const fin = finance?.data;
@@ -51,6 +54,12 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
           <Stat label="New applications" value={fresh} href="/admin/applications?status=new" />
           <Stat label="Shortlisted" value={shortlisted} href="/admin/applications?status=shortlisted" />
           <Stat label="Confirmed contestants" value={confirmed} href="/admin/applications?status=confirmed" />
+        </div>
+      )}
+      {showContact && (
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Stat label="New enquiries" value={newEnquiries} href="/admin/messages" />
+          <Stat label="Sponsorship & partner enquiries" value={partnerEnquiries} href={`/admin/messages?type=${encodeURIComponent("Sponsorship & partnership")}`} />
         </div>
       )}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
