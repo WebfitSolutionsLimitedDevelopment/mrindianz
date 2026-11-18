@@ -10,6 +10,9 @@ const SUPABASE_STUBS = `
 create role anon nologin;
 create role authenticated nologin;
 create role service_role nologin bypassrls;
+-- A pre-existing 'public' table from another site sharing the project, to prove isolation.
+create table public.contestants (id int primary key, name text);
+create table public.faqs (id int primary key);
 create schema auth;
 create schema extensions;
 create table auth.users (id uuid primary key, email text);
@@ -34,6 +37,8 @@ export async function createTestDb(): Promise<PGlite> {
       throw new Error(`Migration ${f} failed: ${(e as Error).message}`);
     }
   }
+  // Unqualified names in tests resolve to the app schema, as PostgREST does with db.schema = mrindianz.
+  await db.exec(`set search_path to mrindianz, public, extensions`);
   return db;
 }
 
@@ -55,6 +60,6 @@ export async function asRole<T>(db: PGlite, role: "anon" | "authenticated" | "se
 export async function createAdmin(db: PGlite, roles: string[]): Promise<string> {
   const id = crypto.randomUUID();
   await db.query(`insert into auth.users (id, email) values ($1, $2)`, [id, `${id}@example.test`]);
-  for (const r of roles) await db.query(`insert into public.admin_roles (user_id, role) values ($1, $2)`, [id, r]);
+  for (const r of roles) await db.query(`insert into mrindianz.admin_roles (user_id, role) values ($1, $2)`, [id, r]);
   return id;
 }

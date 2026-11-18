@@ -65,7 +65,7 @@ export async function anonymiseApplication(formData: FormData) {
   const service = createServiceClient();
   const db = await createUserClient();
   const { data: media } = await db.from("application_media").select("storage_path").eq("application_id", id);
-  if (service && media?.length) await service.storage.from("application-media").remove(media.map((m) => m.storage_path));
+  if (service && media?.length) await service.storage.from("mrindianz-applications").remove(media.map((m) => m.storage_path));
   const { error } = await db.rpc("anonymise_application", { p_application_id: id });
   if (error) back(`/admin/applications/${id}`, { error: "Deletion failed." });
   await audit(session.userId, "applicant_data_deleted", "applications", id);

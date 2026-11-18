@@ -52,4 +52,6 @@ npx playwright install chromium && npm run test:e2e   # or PW_CHANNEL=chrome to 
 
 Regenerate the initial CMS content migration after editing `src/lib/content/defaults.ts`: `npm run content:sql` (it only inserts missing rows; it never overwrites organiser edits).
 
+**Supabase:** all objects live in the `mrindianz` schema, so the project can be shared; see **docs/SUPABASE-SETUP.md** (paste-able script in `supabase/setup/`).
+
 See **docs/DEPLOYMENT.md** for staging/production, domain, Stripe and Resend checklists, and **docs/PRODUCTION-READINESS.md** for the verification status.

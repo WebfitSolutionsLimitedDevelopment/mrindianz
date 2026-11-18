@@ -14,12 +14,12 @@ export async function GET(req: Request) {
   if (!db) return NextResponse.json({ error: "Not configured" }, { status: 503 });
   const cutoff = Date.now() - 24 * 3600_000;
   let removed = 0;
-  const { data: sessions } = await db.storage.from("application-media").list("drafts", { limit: 1000 });
+  const { data: sessions } = await db.storage.from("mrindianz-applications").list("drafts", { limit: 1000 });
   for (const s of sessions ?? []) {
-    const { data: files } = await db.storage.from("application-media").list(`drafts/${s.name}`, { limit: 10 });
+    const { data: files } = await db.storage.from("mrindianz-applications").list(`drafts/${s.name}`, { limit: 10 });
     const stale = (files ?? []).filter((f) => f.created_at && Date.parse(f.created_at) < cutoff).map((f) => `drafts/${s.name}/${f.name}`);
     if (stale.length) {
-      await db.storage.from("application-media").remove(stale);
+      await db.storage.from("mrindianz-applications").remove(stale);
       removed += stale.length;
     }
   }

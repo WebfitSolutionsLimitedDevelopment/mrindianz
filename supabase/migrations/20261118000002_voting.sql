@@ -1,11 +1,11 @@
 -- People's Choice paid voting: campaigns, packages, orders, payment events and an append-only vote ledger.
--- Vote totals are ALWAYS derived from public.vote_ledger. There is no editable vote-total column.
+-- Vote totals are ALWAYS derived from mrindianz.vote_ledger. There is no editable vote-total column.
 
-create table public.voting_campaigns (
+create table mrindianz.voting_campaigns (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique check (slug ~ '^[a-z0-9-]+$'),
   name text not null,
-  status public.voting_status not null default 'draft',
+  status mrindianz.voting_status not null default 'draft',
   opens_at timestamptz,
   closes_at timestamptz,
   timezone text not null default 'Pacific/Auckland',
@@ -24,12 +24,12 @@ create table public.voting_campaigns (
   updated_at timestamptz not null default now(),
   constraint voting_window_valid check (opens_at is null or closes_at is null or closes_at > opens_at)
 );
-create trigger voting_campaigns_updated_at before update on public.voting_campaigns
-  for each row execute function public.set_updated_at();
+create trigger voting_campaigns_updated_at before update on mrindianz.voting_campaigns
+  for each row execute function mrindianz.set_updated_at();
 
-create table public.voting_packages (
+create table mrindianz.voting_packages (
   id uuid primary key default gen_random_uuid(),
-  campaign_id uuid not null references public.voting_campaigns (id) on delete restrict,
+  campaign_id uuid not null references mrindianz.voting_campaigns (id) on delete restrict,
   name text not null check (char_length(name) between 1 and 60),
   display_label text check (display_label is null or char_length(display_label) <= 60),
   price_cents int not null check (price_cents between 50 and 1000000),
@@ -42,23 +42,23 @@ create table public.voting_packages (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index voting_packages_campaign_idx on public.voting_packages (campaign_id, sort_order);
-create trigger voting_packages_updated_at before update on public.voting_packages
-  for each row execute function public.set_updated_at();
+create index voting_packages_campaign_idx on mrindianz.voting_packages (campaign_id, sort_order);
+create trigger voting_packages_updated_at before update on mrindianz.voting_packages
+  for each row execute function mrindianz.set_updated_at();
 
-create table public.voting_orders (
+create table mrindianz.voting_orders (
   id uuid primary key default gen_random_uuid(),
   public_ref text not null unique default ('V-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10))),
   idempotency_key uuid not null unique,
-  campaign_id uuid not null references public.voting_campaigns (id) on delete restrict,
-  contestant_id uuid not null references public.contestants (id) on delete restrict,
+  campaign_id uuid not null references mrindianz.voting_campaigns (id) on delete restrict,
+  contestant_id uuid not null references mrindianz.contestants (id) on delete restrict,
   supporter_name text not null check (char_length(supporter_name) between 1 and 80),
   supporter_email text not null check (supporter_email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
   display_anonymously boolean not null default false,
   terms_version text not null,
   terms_accepted_at timestamptz not null,
-  status public.order_status not null default 'pending',
-  payment_mode public.payment_mode not null,
+  status mrindianz.order_status not null default 'pending',
+  payment_mode mrindianz.payment_mode not null,
   subtotal_cents int not null check (subtotal_cents > 0),
   total_cents int not null check (total_cents > 0),
   currency text not null default 'NZD',
@@ -70,14 +70,14 @@ create table public.voting_orders (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index voting_orders_campaign_status_idx on public.voting_orders (campaign_id, status, created_at desc);
-create trigger voting_orders_updated_at before update on public.voting_orders
-  for each row execute function public.set_updated_at();
+create index voting_orders_campaign_status_idx on mrindianz.voting_orders (campaign_id, status, created_at desc);
+create trigger voting_orders_updated_at before update on mrindianz.voting_orders
+  for each row execute function mrindianz.set_updated_at();
 
-create table public.voting_order_items (
+create table mrindianz.voting_order_items (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.voting_orders (id) on delete restrict,
-  package_id uuid not null references public.voting_packages (id) on delete restrict,
+  order_id uuid not null references mrindianz.voting_orders (id) on delete restrict,
+  package_id uuid not null references mrindianz.voting_packages (id) on delete restrict,
   package_name text not null,
   unit_price_cents int not null check (unit_price_cents > 0),
   votes_per_unit int not null check (votes_per_unit > 0),
@@ -87,12 +87,12 @@ create table public.voting_order_items (
   created_at timestamptz not null default now()
 );
 
-create table public.payment_events (
+create table mrindianz.payment_events (
   id uuid primary key default gen_random_uuid(),
   stripe_event_id text not null unique, -- idempotency: each Stripe event processed once
   event_type text not null,
-  payment_mode public.payment_mode not null,
-  order_id uuid references public.voting_orders (id) on delete restrict,
+  payment_mode mrindianz.payment_mode not null,
+  order_id uuid references mrindianz.voting_orders (id) on delete restrict,
   summary jsonb not null default '{}'::jsonb, -- minimal, no card data
   processing_status text not null default 'received' check (processing_status in ('received', 'processed', 'ignored', 'retry', 'failed')),
   result text,
@@ -101,14 +101,14 @@ create table public.payment_events (
   processed_at timestamptz
 );
 
-create table public.vote_ledger (
+create table mrindianz.vote_ledger (
   id uuid primary key default gen_random_uuid(),
-  campaign_id uuid not null references public.voting_campaigns (id) on delete restrict,
-  contestant_id uuid not null references public.contestants (id) on delete restrict,
-  order_id uuid references public.voting_orders (id) on delete restrict,
-  entry_type public.ledger_entry_type not null,
+  campaign_id uuid not null references mrindianz.voting_campaigns (id) on delete restrict,
+  contestant_id uuid not null references mrindianz.contestants (id) on delete restrict,
+  order_id uuid references mrindianz.voting_orders (id) on delete restrict,
+  entry_type mrindianz.ledger_entry_type not null,
   votes int not null check (votes <> 0),
-  payment_mode public.payment_mode not null,
+  payment_mode mrindianz.payment_mode not null,
   source_ref text not null, -- stripe session/refund/dispute id, or admin reference
   package_snapshot jsonb,
   note text,
@@ -122,12 +122,12 @@ create table public.vote_ledger (
   unique (entry_type, source_ref)
 );
 -- An order can be credited at most once.
-create unique index vote_ledger_one_credit_per_order on public.vote_ledger (order_id) where entry_type = 'credit';
-create index vote_ledger_tally_idx on public.vote_ledger (campaign_id, contestant_id, payment_mode, created_at);
+create unique index vote_ledger_one_credit_per_order on mrindianz.vote_ledger (order_id) where entry_type = 'credit';
+create index vote_ledger_tally_idx on mrindianz.vote_ledger (campaign_id, contestant_id, payment_mode, created_at);
 
-create table public.payment_refunds (
+create table mrindianz.payment_refunds (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.voting_orders (id) on delete restrict,
+  order_id uuid not null references mrindianz.voting_orders (id) on delete restrict,
   stripe_refund_id text not null unique,
   amount_cents int not null check (amount_cents > 0),
   votes_reversed int not null default 0,
@@ -135,9 +135,9 @@ create table public.payment_refunds (
   created_at timestamptz not null default now()
 );
 
-create table public.payment_disputes (
+create table mrindianz.payment_disputes (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.voting_orders (id) on delete restrict,
+  order_id uuid not null references mrindianz.voting_orders (id) on delete restrict,
   stripe_dispute_id text not null unique,
   amount_cents int not null,
   reason text,
@@ -148,29 +148,29 @@ create table public.payment_disputes (
 );
 
 -- Financial history is append-only.
-create or replace function public.forbid_mutation() returns trigger
+create or replace function mrindianz.forbid_mutation() returns trigger
 language plpgsql set search_path = '' as $$
 begin
   raise exception '% on % is not permitted (append-only financial/audit record)', tg_op, tg_table_name;
 end $$;
-create trigger vote_ledger_append_only before update or delete on public.vote_ledger
-  for each row execute function public.forbid_mutation();
-create trigger audit_logs_append_only before update or delete on public.audit_logs
-  for each row execute function public.forbid_mutation();
-create trigger voting_orders_no_delete before delete on public.voting_orders
-  for each row execute function public.forbid_mutation();
-create trigger payment_events_no_delete before delete on public.payment_events
-  for each row execute function public.forbid_mutation();
-create trigger payment_refunds_no_delete before delete on public.payment_refunds
-  for each row execute function public.forbid_mutation();
+create trigger vote_ledger_append_only before update or delete on mrindianz.vote_ledger
+  for each row execute function mrindianz.forbid_mutation();
+create trigger audit_logs_append_only before update or delete on mrindianz.audit_logs
+  for each row execute function mrindianz.forbid_mutation();
+create trigger voting_orders_no_delete before delete on mrindianz.voting_orders
+  for each row execute function mrindianz.forbid_mutation();
+create trigger payment_events_no_delete before delete on mrindianz.payment_events
+  for each row execute function mrindianz.forbid_mutation();
+create trigger payment_refunds_no_delete before delete on mrindianz.payment_refunds
+  for each row execute function mrindianz.forbid_mutation();
 
 -- ---------------------------------------------------------------------------
 -- Voting availability
 -- ---------------------------------------------------------------------------
-create or replace function public.campaign_accepting_votes(p_campaign_id uuid, p_at timestamptz default now())
+create or replace function mrindianz.campaign_accepting_votes(p_campaign_id uuid, p_at timestamptz default now())
 returns boolean language sql stable security definer set search_path = '' as $$
   select exists (
-    select 1 from public.voting_campaigns c
+    select 1 from mrindianz.voting_campaigns c
     where c.id = p_campaign_id
       and c.status = 'open'
       and (c.opens_at is null or p_at >= c.opens_at)
@@ -182,7 +182,7 @@ $$;
 -- Order creation. Prices and vote quantities come ONLY from voting_packages.
 -- Called by the server with the service role; never exposed to anon.
 -- ---------------------------------------------------------------------------
-create or replace function public.create_voting_order(
+create or replace function mrindianz.create_voting_order(
   p_idempotency_key uuid,
   p_campaign_id uuid,
   p_contestant_id uuid,
@@ -192,23 +192,23 @@ create or replace function public.create_voting_order(
   p_supporter_email text,
   p_display_anonymously boolean,
   p_terms_version text,
-  p_payment_mode public.payment_mode
-) returns public.voting_orders
+  p_payment_mode mrindianz.payment_mode
+) returns mrindianz.voting_orders
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_campaign public.voting_campaigns;
-  v_package public.voting_packages;
-  v_order public.voting_orders;
+  v_campaign mrindianz.voting_campaigns;
+  v_package mrindianz.voting_packages;
+  v_order mrindianz.voting_orders;
   v_max int;
 begin
-  select * into v_order from public.voting_orders where idempotency_key = p_idempotency_key;
+  select * into v_order from mrindianz.voting_orders where idempotency_key = p_idempotency_key;
   if found then
     return v_order;
   end if;
 
-  select * into v_campaign from public.voting_campaigns where id = p_campaign_id;
+  select * into v_campaign from mrindianz.voting_campaigns where id = p_campaign_id;
   if not found then raise exception 'campaign_not_found' using errcode = 'P0001'; end if;
-  if not public.campaign_accepting_votes(p_campaign_id) then
+  if not mrindianz.campaign_accepting_votes(p_campaign_id) then
     raise exception 'voting_not_open' using errcode = 'P0001';
   end if;
   if (p_payment_mode = 'demo') <> v_campaign.is_demo then
@@ -218,11 +218,11 @@ begin
     raise exception 'terms_version_mismatch' using errcode = 'P0001';
   end if;
 
-  perform 1 from public.contestants
+  perform 1 from mrindianz.contestants
    where id = p_contestant_id and publication_status = 'published' and voting_eligible;
   if not found then raise exception 'contestant_not_eligible' using errcode = 'P0001'; end if;
 
-  select * into v_package from public.voting_packages
+  select * into v_package from mrindianz.voting_packages
    where id = p_package_id and campaign_id = p_campaign_id and is_active;
   if not found then raise exception 'package_not_available' using errcode = 'P0001'; end if;
 
@@ -231,7 +231,7 @@ begin
     raise exception 'invalid_quantity' using errcode = 'P0001';
   end if;
 
-  insert into public.voting_orders (
+  insert into mrindianz.voting_orders (
     idempotency_key, campaign_id, contestant_id, supporter_name, supporter_email, display_anonymously,
     terms_version, terms_accepted_at, status, payment_mode, subtotal_cents, total_cents, currency, total_votes)
   values (
@@ -241,7 +241,7 @@ begin
     v_package.votes * p_quantity)
   returning * into v_order;
 
-  insert into public.voting_order_items (order_id, package_id, package_name, unit_price_cents, votes_per_unit,
+  insert into mrindianz.voting_order_items (order_id, package_id, package_name, unit_price_cents, votes_per_unit,
     quantity, line_total_cents, line_votes)
   values (v_order.id, v_package.id, v_package.name, v_package.price_cents, v_package.votes, p_quantity,
     v_package.price_cents * p_quantity, v_package.votes * p_quantity);
@@ -249,10 +249,10 @@ begin
   return v_order;
 end $$;
 
-create or replace function public.attach_checkout_session(p_order_id uuid, p_session_id text)
+create or replace function mrindianz.attach_checkout_session(p_order_id uuid, p_session_id text)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
-  update public.voting_orders
+  update mrindianz.voting_orders
      set stripe_checkout_session_id = p_session_id, status = 'awaiting_payment'
    where id = p_order_id and status = 'pending' and stripe_checkout_session_id is null;
   if not found then raise exception 'order_not_attachable' using errcode = 'P0001'; end if;
@@ -262,33 +262,33 @@ end $$;
 -- Webhook processing helpers. Each records the Stripe event (idempotent) and applies the
 -- change in the same transaction. Return values: processed | duplicate | ignored | retry | rejected:<reason>
 -- ---------------------------------------------------------------------------
-create or replace function public._begin_payment_event(
-  p_event_id text, p_event_type text, p_mode public.payment_mode, p_summary jsonb)
+create or replace function mrindianz._begin_payment_event(
+  p_event_id text, p_event_type text, p_mode mrindianz.payment_mode, p_summary jsonb)
 returns text language plpgsql security definer set search_path = '' as $$
 declare v_status text;
 begin
-  insert into public.payment_events (stripe_event_id, event_type, payment_mode, summary)
+  insert into mrindianz.payment_events (stripe_event_id, event_type, payment_mode, summary)
   values (p_event_id, p_event_type, p_mode, coalesce(p_summary, '{}'::jsonb))
   on conflict (stripe_event_id) do nothing;
   if found then return 'new'; end if;
-  select processing_status into v_status from public.payment_events where stripe_event_id = p_event_id for update;
+  select processing_status into v_status from mrindianz.payment_events where stripe_event_id = p_event_id for update;
   if v_status in ('processed', 'ignored', 'failed') then return 'duplicate'; end if;
-  update public.payment_events set attempts = attempts + 1 where stripe_event_id = p_event_id;
+  update mrindianz.payment_events set attempts = attempts + 1 where stripe_event_id = p_event_id;
   return 'retry';
 end $$;
 
-create or replace function public._finish_payment_event(
+create or replace function mrindianz._finish_payment_event(
   p_event_id text, p_status text, p_result text, p_order_id uuid)
 returns void language sql security definer set search_path = '' as $$
-  update public.payment_events
+  update mrindianz.payment_events
      set processing_status = p_status, result = p_result, order_id = coalesce(p_order_id, order_id),
          processed_at = case when p_status in ('processed', 'ignored', 'failed') then now() else processed_at end
    where stripe_event_id = p_event_id;
 $$;
 
-create or replace function public.process_checkout_completed(
+create or replace function mrindianz.process_checkout_completed(
   p_event_id text,
-  p_mode public.payment_mode,
+  p_mode mrindianz.payment_mode,
   p_order_id uuid,
   p_session_id text,
   p_payment_intent_id text,
@@ -298,48 +298,48 @@ create or replace function public.process_checkout_completed(
 ) returns text language plpgsql security definer set search_path = '' as $$
 declare
   v_begin text;
-  v_order public.voting_orders;
-  v_item public.voting_order_items;
+  v_order mrindianz.voting_orders;
+  v_item mrindianz.voting_order_items;
 begin
-  v_begin := public._begin_payment_event(p_event_id, 'checkout.session.completed', p_mode,
+  v_begin := mrindianz._begin_payment_event(p_event_id, 'checkout.session.completed', p_mode,
     jsonb_build_object('session', p_session_id, 'payment_status', p_payment_status, 'amount', p_amount_total));
   if v_begin = 'duplicate' then return 'duplicate'; end if;
 
-  select * into v_order from public.voting_orders where id = p_order_id for update;
+  select * into v_order from mrindianz.voting_orders where id = p_order_id for update;
   if not found then
-    perform public._finish_payment_event(p_event_id, 'failed', 'order_not_found', null);
+    perform mrindianz._finish_payment_event(p_event_id, 'failed', 'order_not_found', null);
     return 'rejected:order_not_found';
   end if;
   if v_order.stripe_checkout_session_id is distinct from p_session_id then
-    perform public._finish_payment_event(p_event_id, 'failed', 'session_mismatch', v_order.id);
+    perform mrindianz._finish_payment_event(p_event_id, 'failed', 'session_mismatch', v_order.id);
     return 'rejected:session_mismatch';
   end if;
   if v_order.payment_mode <> p_mode then
-    perform public._finish_payment_event(p_event_id, 'failed', 'mode_mismatch', v_order.id);
+    perform mrindianz._finish_payment_event(p_event_id, 'failed', 'mode_mismatch', v_order.id);
     return 'rejected:mode_mismatch';
   end if;
   if v_order.status in ('paid', 'refunded', 'partially_refunded', 'disputed') then
-    perform public._finish_payment_event(p_event_id, 'processed', 'already_paid', v_order.id);
+    perform mrindianz._finish_payment_event(p_event_id, 'processed', 'already_paid', v_order.id);
     return 'duplicate';
   end if;
   if p_payment_status <> 'paid' then
     -- asynchronous payment methods: wait for checkout.session.async_payment_succeeded
-    perform public._finish_payment_event(p_event_id, 'ignored', 'payment_not_yet_paid', v_order.id);
+    perform mrindianz._finish_payment_event(p_event_id, 'ignored', 'payment_not_yet_paid', v_order.id);
     return 'ignored';
   end if;
   if p_amount_total is distinct from v_order.total_cents or lower(p_currency) <> lower(v_order.currency) then
-    update public.voting_orders set status = 'review_required', status_reason = 'amount_mismatch' where id = v_order.id;
-    perform public._finish_payment_event(p_event_id, 'failed', 'amount_mismatch', v_order.id);
+    update mrindianz.voting_orders set status = 'review_required', status_reason = 'amount_mismatch' where id = v_order.id;
+    perform mrindianz._finish_payment_event(p_event_id, 'failed', 'amount_mismatch', v_order.id);
     return 'rejected:amount_mismatch';
   end if;
 
-  update public.voting_orders
+  update mrindianz.voting_orders
      set status = 'paid', paid_at = now(), stripe_payment_intent_id = coalesce(p_payment_intent_id, stripe_payment_intent_id)
    where id = v_order.id;
 
-  select * into v_item from public.voting_order_items where order_id = v_order.id limit 1;
+  select * into v_item from mrindianz.voting_order_items where order_id = v_order.id limit 1;
 
-  insert into public.vote_ledger (campaign_id, contestant_id, order_id, entry_type, votes, payment_mode, source_ref, package_snapshot)
+  insert into mrindianz.vote_ledger (campaign_id, contestant_id, order_id, entry_type, votes, payment_mode, source_ref, package_snapshot)
   values (v_order.campaign_id, v_order.contestant_id, v_order.id, 'credit', v_order.total_votes, v_order.payment_mode,
           p_session_id,
           jsonb_build_object('package_id', v_item.package_id, 'name', v_item.package_name,
@@ -347,173 +347,173 @@ begin
                              'quantity', v_item.quantity))
   on conflict do nothing;
 
-  perform public._finish_payment_event(p_event_id, 'processed', 'credited', v_order.id);
+  perform mrindianz._finish_payment_event(p_event_id, 'processed', 'credited', v_order.id);
   return 'processed';
 end $$;
 
-create or replace function public.process_checkout_failed(
-  p_event_id text, p_event_type text, p_mode public.payment_mode, p_order_id uuid, p_session_id text)
+create or replace function mrindianz.process_checkout_failed(
+  p_event_id text, p_event_type text, p_mode mrindianz.payment_mode, p_order_id uuid, p_session_id text)
 returns text language plpgsql security definer set search_path = '' as $$
-declare v_begin text; v_order public.voting_orders;
+declare v_begin text; v_order mrindianz.voting_orders;
 begin
-  v_begin := public._begin_payment_event(p_event_id, p_event_type, p_mode, jsonb_build_object('session', p_session_id));
+  v_begin := mrindianz._begin_payment_event(p_event_id, p_event_type, p_mode, jsonb_build_object('session', p_session_id));
   if v_begin = 'duplicate' then return 'duplicate'; end if;
-  select * into v_order from public.voting_orders where id = p_order_id for update;
+  select * into v_order from mrindianz.voting_orders where id = p_order_id for update;
   if not found or v_order.stripe_checkout_session_id is distinct from p_session_id then
-    perform public._finish_payment_event(p_event_id, 'failed', 'order_not_found', null);
+    perform mrindianz._finish_payment_event(p_event_id, 'failed', 'order_not_found', null);
     return 'rejected:order_not_found';
   end if;
   if v_order.status in ('pending', 'awaiting_payment') then
-    update public.voting_orders
-       set status = case when p_event_type = 'checkout.session.expired' then 'expired'::public.order_status else 'failed'::public.order_status end,
+    update mrindianz.voting_orders
+       set status = case when p_event_type = 'checkout.session.expired' then 'expired'::mrindianz.order_status else 'failed'::mrindianz.order_status end,
            status_reason = p_event_type
      where id = v_order.id;
   end if;
-  perform public._finish_payment_event(p_event_id, 'processed', 'order_closed', v_order.id);
+  perform mrindianz._finish_payment_event(p_event_id, 'processed', 'order_closed', v_order.id);
   return 'processed';
 end $$;
 
 -- Remaining credited votes for an order (credit + reinstatements + reversals).
-create or replace function public.order_net_votes(p_order_id uuid) returns int
+create or replace function mrindianz.order_net_votes(p_order_id uuid) returns int
 language sql stable security definer set search_path = '' as $$
-  select coalesce(sum(votes), 0)::int from public.vote_ledger where order_id = p_order_id;
+  select coalesce(sum(votes), 0)::int from mrindianz.vote_ledger where order_id = p_order_id;
 $$;
 
-create or replace function public.process_refund(
-  p_event_id text, p_mode public.payment_mode, p_payment_intent_id text, p_refund_id text,
+create or replace function mrindianz.process_refund(
+  p_event_id text, p_mode mrindianz.payment_mode, p_payment_intent_id text, p_refund_id text,
   p_refund_amount_cents int, p_refund_status text)
 returns text language plpgsql security definer set search_path = '' as $$
 declare
-  v_begin text; v_order public.voting_orders; v_reverse int; v_prev_refunded int; v_net int;
+  v_begin text; v_order mrindianz.voting_orders; v_reverse int; v_prev_refunded int; v_net int;
 begin
-  v_begin := public._begin_payment_event(p_event_id, 'refund', p_mode,
+  v_begin := mrindianz._begin_payment_event(p_event_id, 'refund', p_mode,
     jsonb_build_object('refund', p_refund_id, 'amount', p_refund_amount_cents, 'status', p_refund_status));
   if v_begin = 'duplicate' then return 'duplicate'; end if;
 
-  select * into v_order from public.voting_orders where stripe_payment_intent_id = p_payment_intent_id for update;
+  select * into v_order from mrindianz.voting_orders where stripe_payment_intent_id = p_payment_intent_id for update;
   if not found then
     -- Out-of-order delivery: the payment may not be recorded yet. Ask Stripe to retry.
-    perform public._finish_payment_event(p_event_id, 'retry', 'order_not_yet_paid', null);
+    perform mrindianz._finish_payment_event(p_event_id, 'retry', 'order_not_yet_paid', null);
     return 'retry';
   end if;
   if p_refund_status not in ('succeeded', 'pending') then
-    perform public._finish_payment_event(p_event_id, 'ignored', 'refund_status_' || p_refund_status, v_order.id);
+    perform mrindianz._finish_payment_event(p_event_id, 'ignored', 'refund_status_' || p_refund_status, v_order.id);
     return 'ignored';
   end if;
-  if exists (select 1 from public.payment_refunds where stripe_refund_id = p_refund_id) then
-    perform public._finish_payment_event(p_event_id, 'processed', 'refund_already_recorded', v_order.id);
+  if exists (select 1 from mrindianz.payment_refunds where stripe_refund_id = p_refund_id) then
+    perform mrindianz._finish_payment_event(p_event_id, 'processed', 'refund_already_recorded', v_order.id);
     return 'duplicate';
   end if;
 
-  select coalesce(sum(amount_cents), 0) into v_prev_refunded from public.payment_refunds where order_id = v_order.id;
+  select coalesce(sum(amount_cents), 0) into v_prev_refunded from mrindianz.payment_refunds where order_id = v_order.id;
   if v_prev_refunded + p_refund_amount_cents >= v_order.total_cents then
-    v_reverse := public.order_net_votes(v_order.id); -- full refund: remove everything still credited
+    v_reverse := mrindianz.order_net_votes(v_order.id); -- full refund: remove everything still credited
   else
     -- partial refund: pro-rata, rounded down, never more than remains
-    v_reverse := least(public.order_net_votes(v_order.id),
+    v_reverse := least(mrindianz.order_net_votes(v_order.id),
                        (v_order.total_votes::bigint * p_refund_amount_cents / v_order.total_cents)::int);
   end if;
 
-  insert into public.payment_refunds (order_id, stripe_refund_id, amount_cents, votes_reversed, status)
+  insert into mrindianz.payment_refunds (order_id, stripe_refund_id, amount_cents, votes_reversed, status)
   values (v_order.id, p_refund_id, p_refund_amount_cents, greatest(v_reverse, 0), p_refund_status);
 
   if v_reverse > 0 then
-    insert into public.vote_ledger (campaign_id, contestant_id, order_id, entry_type, votes, payment_mode, source_ref)
+    insert into mrindianz.vote_ledger (campaign_id, contestant_id, order_id, entry_type, votes, payment_mode, source_ref)
     values (v_order.campaign_id, v_order.contestant_id, v_order.id, 'refund_reversal', -v_reverse, v_order.payment_mode, p_refund_id);
   end if;
 
-  update public.voting_orders
+  update mrindianz.voting_orders
      set status = case when v_prev_refunded + p_refund_amount_cents >= total_cents
-                       then 'refunded'::public.order_status else 'partially_refunded'::public.order_status end
+                       then 'refunded'::mrindianz.order_status else 'partially_refunded'::mrindianz.order_status end
    where id = v_order.id and status <> 'disputed';
 
-  perform public._finish_payment_event(p_event_id, 'processed', 'refund_recorded', v_order.id);
+  perform mrindianz._finish_payment_event(p_event_id, 'processed', 'refund_recorded', v_order.id);
   return 'processed';
 end $$;
 
-create or replace function public.process_dispute(
-  p_event_id text, p_event_type text, p_mode public.payment_mode, p_payment_intent_id text,
+create or replace function mrindianz.process_dispute(
+  p_event_id text, p_event_type text, p_mode mrindianz.payment_mode, p_payment_intent_id text,
   p_dispute_id text, p_dispute_status text, p_amount_cents int, p_reason text)
 returns text language plpgsql security definer set search_path = '' as $$
 declare
-  v_begin text; v_order public.voting_orders; v_net int; v_reversed int; v_existing public.payment_disputes;
+  v_begin text; v_order mrindianz.voting_orders; v_net int; v_reversed int; v_existing mrindianz.payment_disputes;
 begin
-  v_begin := public._begin_payment_event(p_event_id, p_event_type, p_mode,
+  v_begin := mrindianz._begin_payment_event(p_event_id, p_event_type, p_mode,
     jsonb_build_object('dispute', p_dispute_id, 'status', p_dispute_status));
   if v_begin = 'duplicate' then return 'duplicate'; end if;
 
-  select * into v_order from public.voting_orders where stripe_payment_intent_id = p_payment_intent_id for update;
+  select * into v_order from mrindianz.voting_orders where stripe_payment_intent_id = p_payment_intent_id for update;
   if not found then
-    perform public._finish_payment_event(p_event_id, 'retry', 'order_not_yet_paid', null);
+    perform mrindianz._finish_payment_event(p_event_id, 'retry', 'order_not_yet_paid', null);
     return 'retry';
   end if;
 
-  select * into v_existing from public.payment_disputes where stripe_dispute_id = p_dispute_id for update;
+  select * into v_existing from mrindianz.payment_disputes where stripe_dispute_id = p_dispute_id for update;
   if not found then
-    v_net := public.order_net_votes(v_order.id);
-    insert into public.payment_disputes (order_id, stripe_dispute_id, amount_cents, reason, status, votes_reversed)
+    v_net := mrindianz.order_net_votes(v_order.id);
+    insert into mrindianz.payment_disputes (order_id, stripe_dispute_id, amount_cents, reason, status, votes_reversed)
     values (v_order.id, p_dispute_id, p_amount_cents, p_reason, p_dispute_status, greatest(v_net, 0))
     returning * into v_existing;
     if v_net > 0 then
-      insert into public.vote_ledger (campaign_id, contestant_id, order_id, entry_type, votes, payment_mode, source_ref)
+      insert into mrindianz.vote_ledger (campaign_id, contestant_id, order_id, entry_type, votes, payment_mode, source_ref)
       values (v_order.campaign_id, v_order.contestant_id, v_order.id, 'dispute_reversal', -v_net, v_order.payment_mode, p_dispute_id)
       on conflict do nothing;
     end if;
-    update public.voting_orders set status = 'disputed' where id = v_order.id;
+    update mrindianz.voting_orders set status = 'disputed' where id = v_order.id;
   else
-    update public.payment_disputes set status = p_dispute_status where id = v_existing.id;
+    update mrindianz.payment_disputes set status = p_dispute_status where id = v_existing.id;
   end if;
 
   -- Dispute resolved in the organiser's favour: reinstate exactly what was reversed, once.
   if p_dispute_status = 'won' and v_existing.votes_reversed > 0 then
-    insert into public.vote_ledger (campaign_id, contestant_id, order_id, entry_type, votes, payment_mode, source_ref)
+    insert into mrindianz.vote_ledger (campaign_id, contestant_id, order_id, entry_type, votes, payment_mode, source_ref)
     values (v_order.campaign_id, v_order.contestant_id, v_order.id, 'dispute_reinstatement', v_existing.votes_reversed,
             v_order.payment_mode, p_dispute_id || ':won')
     on conflict do nothing;
-    update public.voting_orders set status = 'paid' where id = v_order.id;
+    update mrindianz.voting_orders set status = 'paid' where id = v_order.id;
   end if;
 
-  perform public._finish_payment_event(p_event_id, 'processed', 'dispute_' || p_dispute_status, v_order.id);
+  perform mrindianz._finish_payment_event(p_event_id, 'processed', 'dispute_' || p_dispute_status, v_order.id);
   return 'processed';
 end $$;
 
 -- Demo-only completion (local/staging demonstrations). Rejected for any non-demo order.
-create or replace function public.complete_demo_order(p_order_id uuid)
+create or replace function mrindianz.complete_demo_order(p_order_id uuid)
 returns text language plpgsql security definer set search_path = '' as $$
-declare v_order public.voting_orders; v_session text;
+declare v_order mrindianz.voting_orders; v_session text;
 begin
-  select * into v_order from public.voting_orders where id = p_order_id for update;
+  select * into v_order from mrindianz.voting_orders where id = p_order_id for update;
   if not found or v_order.payment_mode <> 'demo' then
     raise exception 'not_a_demo_order' using errcode = 'P0001';
   end if;
   if v_order.status = 'pending' then
     v_session := 'demo_' || v_order.id::text;
-    update public.voting_orders set stripe_checkout_session_id = v_session, status = 'awaiting_payment' where id = v_order.id;
+    update mrindianz.voting_orders set stripe_checkout_session_id = v_session, status = 'awaiting_payment' where id = v_order.id;
   else
     v_session := v_order.stripe_checkout_session_id;
   end if;
-  return public.process_checkout_completed('demo_evt_' || v_order.id::text, 'demo', v_order.id, v_session,
+  return mrindianz.process_checkout_completed('demo_evt_' || v_order.id::text, 'demo', v_order.id, v_session,
                                             null, 'paid', v_order.total_cents, v_order.currency);
 end $$;
 
 -- ---------------------------------------------------------------------------
 -- Public read models (security definer, expose only public fields)
 -- ---------------------------------------------------------------------------
-create or replace function public.public_leaderboard(p_campaign_id uuid, p_mode public.payment_mode default 'live')
+create or replace function mrindianz.public_leaderboard(p_campaign_id uuid, p_mode mrindianz.payment_mode default 'live')
 returns table (
   contestant_id uuid, slug text, contestant_number int, public_name text, profile_image_path text,
   votes bigint, rank bigint
 ) language sql stable security definer set search_path = '' as $$
   with c as (
-    select * from public.voting_campaigns
+    select * from mrindianz.voting_campaigns
      where id = p_campaign_id and status <> 'draft' and show_leaderboard
   ), effective_mode as (
-    select case when (select is_demo from c) then 'demo'::public.payment_mode
-                when p_mode = 'demo' then 'live'::public.payment_mode
+    select case when (select is_demo from c) then 'demo'::mrindianz.payment_mode
+                when p_mode = 'demo' then 'live'::mrindianz.payment_mode
                 else p_mode end as m
   ), tallies as (
     select l.contestant_id, sum(l.votes) as votes
-      from public.vote_ledger l, c, effective_mode em
+      from mrindianz.vote_ledger l, c, effective_mode em
      where l.campaign_id = c.id
        and l.payment_mode = em.m
        and (c.leaderboard_frozen_at is null or l.created_at <= c.leaderboard_frozen_at)
@@ -522,7 +522,7 @@ returns table (
   select k.id, k.slug, k.contestant_number, k.public_name, k.profile_image_path,
          case when (select show_vote_counts from c) then greatest(coalesce(t.votes, 0), 0)::bigint end,
          case when (select show_rankings from c) then rank() over (order by greatest(coalesce(t.votes, 0), 0) desc) end
-    from public.contestants k
+    from mrindianz.contestants k
     cross join c
     left join tallies t on t.contestant_id = k.id
    where k.publication_status = 'published' and k.voting_eligible
@@ -530,30 +530,30 @@ returns table (
             k.contestant_number nulls last, k.public_name;
 $$;
 
-create or replace function public.public_vote_total(p_campaign_id uuid, p_mode public.payment_mode default 'live')
+create or replace function mrindianz.public_vote_total(p_campaign_id uuid, p_mode mrindianz.payment_mode default 'live')
 returns bigint language sql stable security definer set search_path = '' as $$
   select case when c.show_vote_counts and c.show_leaderboard and c.status <> 'draft'
-              then coalesce((select sum(lb.votes) from public.public_leaderboard(p_campaign_id, p_mode) lb), 0)::bigint
+              then coalesce((select sum(lb.votes) from mrindianz.public_leaderboard(p_campaign_id, p_mode) lb), 0)::bigint
          end
-    from public.voting_campaigns c where c.id = p_campaign_id;
+    from mrindianz.voting_campaigns c where c.id = p_campaign_id;
 $$;
 
-create or replace function public.public_voting_history(p_campaign_id uuid, p_mode public.payment_mode default 'live', p_limit int default 20)
+create or replace function mrindianz.public_voting_history(p_campaign_id uuid, p_mode mrindianz.payment_mode default 'live', p_limit int default 20)
 returns table (supporter text, contestant_name text, contestant_slug text, votes int, approx_time timestamptz)
 language sql stable security definer set search_path = '' as $$
   select case when o.display_anonymously then 'Anonymous' else split_part(o.supporter_name, ' ', 1) end,
          k.public_name, k.slug, l.votes,
          date_trunc('hour', l.created_at)
-    from public.vote_ledger l
-    join public.voting_orders o on o.id = l.order_id
-    join public.contestants k on k.id = l.contestant_id
-    join public.voting_campaigns c on c.id = l.campaign_id
+    from mrindianz.vote_ledger l
+    join mrindianz.voting_orders o on o.id = l.order_id
+    join mrindianz.contestants k on k.id = l.contestant_id
+    join mrindianz.voting_campaigns c on c.id = l.campaign_id
    where l.campaign_id = p_campaign_id
      and l.entry_type = 'credit'
      and o.status = 'paid'
      and c.show_supporter_history
-     and l.payment_mode = case when c.is_demo then 'demo'::public.payment_mode
-                               when p_mode = 'demo' then 'live'::public.payment_mode else p_mode end
+     and l.payment_mode = case when c.is_demo then 'demo'::mrindianz.payment_mode
+                               when p_mode = 'demo' then 'live'::mrindianz.payment_mode else p_mode end
    order by l.created_at desc
    limit least(greatest(p_limit, 1), 50);
 $$;
@@ -561,14 +561,14 @@ $$;
 -- ---------------------------------------------------------------------------
 -- Rate limiting (fixed window)
 -- ---------------------------------------------------------------------------
-create or replace function public.hit_rate_limit(p_key text, p_window_seconds int, p_max int)
+create or replace function mrindianz.hit_rate_limit(p_key text, p_window_seconds int, p_max int)
 returns boolean language plpgsql security definer set search_path = '' as $$
 declare v_window timestamptz; v_hits int;
 begin
   v_window := to_timestamp(floor(extract(epoch from now()) / p_window_seconds) * p_window_seconds);
-  insert into public.rate_limits (key, window_start, hits) values (p_key, v_window, 1)
-  on conflict (key, window_start) do update set hits = public.rate_limits.hits + 1
+  insert into mrindianz.rate_limits (key, window_start, hits) values (p_key, v_window, 1)
+  on conflict (key, window_start) do update set hits = mrindianz.rate_limits.hits + 1
   returning hits into v_hits;
-  delete from public.rate_limits where window_start < now() - interval '1 day';
+  delete from mrindianz.rate_limits where window_start < now() - interval '1 day';
   return v_hits <= p_max;
 end $$;

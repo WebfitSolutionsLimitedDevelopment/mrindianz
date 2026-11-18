@@ -12,6 +12,7 @@ export async function proxy(request: NextRequest) {
   if (!url || !key) return response;
 
   const supabase = createServerClient(url, key, {
+    db: { schema: "mrindianz" },
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {

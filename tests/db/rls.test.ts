@@ -40,9 +40,9 @@ describe("anonymous visitors", () => {
     for (const t of ["voting_orders", "vote_ledger", "payment_events", "payment_refunds", "payment_disputes"]) {
       await expect(asRole(db, "anon", null, (tx) => tx.query(`select * from ${t}`))).rejects.toThrow(/permission denied/);
     }
-    await expect(asRole(db, "anon", null, (tx) => tx.query(`select public.complete_demo_order(gen_random_uuid())`))).rejects.toThrow(/permission denied/);
+    await expect(asRole(db, "anon", null, (tx) => tx.query(`select mrindianz.complete_demo_order(gen_random_uuid())`))).rejects.toThrow(/permission denied/);
     await expect(asRole(db, "anon", null, (tx) => tx.query(
-      `select public.create_voting_order(gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), 1, 'a', 'a@b.co', false, 'x', 'live')`))).rejects.toThrow(/permission denied/);
+      `select mrindianz.create_voting_order(gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), 1, 'a', 'a@b.co', false, 'x', 'live')`))).rejects.toThrow(/permission denied/);
   });
 
   it("cannot see draft voting campaigns but can read the public leaderboard of open ones", async () => {
@@ -126,5 +126,20 @@ describe("admin roles (least privilege)", () => {
     const r = await db.query<{ email: string; legal_name: string }>(`select email, legal_name from applications where id = $1`, [appId]);
     expect(r.rows[0].legal_name).toBe("Deleted applicant");
     expect(r.rows[0].email).not.toContain("private");
+  });
+});
+
+describe("shared-project isolation", () => {
+  it("does not touch other sites' tables in the public schema", async () => {
+    const r = await db.query<{ n: number }>(`select count(*)::int n from information_schema.tables where table_schema = 'public'`);
+    expect(r.rows[0].n).toBe(2); // only the pre-existing stand-in tables
+    const f = await db.query<{ n: number }>(`select count(*)::int n from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public'`);
+    expect(f.rows[0].n).toBe(0);
+  });
+  it("a signed-in user from another site gets nothing without a Mr. IndiaNZ role", async () => {
+    const outsider = crypto.randomUUID();
+    await db.query(`insert into auth.users (id, email) values ($1, 'misp-user@example.com')`, [outsider]);
+    const n = await asRole(db, "authenticated", outsider, (tx) => tx.query<{ n: number }>(`select count(*)::int n from mrindianz.applications`));
+    expect(n.rows[0].n).toBe(0);
   });
 });

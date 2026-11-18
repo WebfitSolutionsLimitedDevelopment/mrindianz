@@ -28,15 +28,15 @@ function event(type: string, object: Record<string, unknown>, id = `evt_${crypto
 
 async function newPaidOrderSession(qty = 1) {
   const r = await db.query<{ id: string; total_cents: number }>(
-    `select * from public.create_voting_order($1, $2, $3, $4, $5, 'Ravi', 'ravi@example.com', true, 'draft-2026-11', 'test')`,
+    `select * from mrindianz.create_voting_order($1, $2, $3, $4, $5, 'Ravi', 'ravi@example.com', true, 'draft-2026-11', 'test')`,
     [crypto.randomUUID(), campaignId, contestantId, packageId, qty]);
   const order = r.rows[0];
   const sessionId = `cs_test_${crypto.randomUUID().replace(/-/g, "")}`;
-  await db.query(`select public.attach_checkout_session($1, $2)`, [order.id, sessionId]);
+  await db.query(`select mrindianz.attach_checkout_session($1, $2)`, [order.id, sessionId]);
   return { order, sessionId, pi: `pi_${crypto.randomUUID().replace(/-/g, "")}` };
 }
 
-const netVotes = async (orderId: string) => (await db.query<{ v: number }>(`select public.order_net_votes($1) v`, [orderId])).rows[0].v;
+const netVotes = async (orderId: string) => (await db.query<{ v: number }>(`select mrindianz.order_net_votes($1) v`, [orderId])).rows[0].v;
 
 beforeAll(async () => {
   db = await createTestDb();
@@ -47,7 +47,7 @@ beforeAll(async () => {
   packageId = (await db.query<{ id: string }>(`select id from voting_packages where campaign_id = $1 and name = 'Supporter'`, [campaignId])).rows[0].id;
   rpc = async (fn, params) => {
     const keys = Object.keys(params);
-    const sql = `select public.${fn}(${keys.map((k, i) => `${k} => $${i + 1}`).join(", ")}) as r`;
+    const sql = `select mrindianz.${fn}(${keys.map((k, i) => `${k} => $${i + 1}`).join(", ")}) as r`;
     const res = await db.query<{ r: string }>(sql, keys.map((k) => params[k]));
     return String(res.rows[0].r);
   };

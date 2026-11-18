@@ -25,7 +25,7 @@ export function ImageUpload({ name, folder, initialPath, initialUrl, label }: {
       if (!res.ok || !body.path || !body.token) throw new Error(body.error ?? "Upload failed");
       const sb = createBrowserSupabase();
       if (!sb) throw new Error("Storage not configured");
-      const { error } = await sb.storage.from("public-media").uploadToSignedUrl(body.path, body.token, f, { contentType: f.type });
+      const { error } = await sb.storage.from("mrindianz-public").uploadToSignedUrl(body.path, body.token, f, { contentType: f.type });
       if (error) throw new Error("Upload failed — retry");
       setPath(body.path);
       setPreview(URL.createObjectURL(f));

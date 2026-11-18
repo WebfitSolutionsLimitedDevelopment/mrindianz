@@ -121,5 +121,5 @@ export function publicMediaUrl(path: string | null | undefined): string | null {
   if (/^https:\/\//.test(path)) return path;
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!base) return null;
-  return `${base}/storage/v1/object/public/public-media/${path.split("/").map(encodeURIComponent).join("/")}`;
+  return `${base}/storage/v1/object/public/mrindianz-public/${path.split("/").map(encodeURIComponent).join("/")}`;
 }

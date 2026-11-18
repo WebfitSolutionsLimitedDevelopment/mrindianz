@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const db = createServiceClient();
   if (!db) return NextResponse.json({ error: "Storage not configured" }, { status: 503 });
   const path = `${parsed.data.folder}/${crypto.randomUUID()}.${EXT_FOR_TYPE[parsed.data.contentType]}`;
-  const { data, error } = await db.storage.from("public-media").createSignedUploadUrl(path);
+  const { data, error } = await db.storage.from("mrindianz-public").createSignedUploadUrl(path);
   if (error || !data) return NextResponse.json({ error: "Could not prepare upload" }, { status: 502 });
   return NextResponse.json({ path: data.path, token: data.token });
 }

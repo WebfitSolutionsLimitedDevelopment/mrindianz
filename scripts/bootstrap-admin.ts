@@ -14,7 +14,7 @@ async function main() {
     console.error("Usage: SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… npx tsx scripts/bootstrap-admin.ts <email>");
     process.exit(1);
   }
-  const db = createClient(url, key, { auth: { persistSession: false } });
+  const db = createClient(url, key, { db: { schema: "mrindianz" }, auth: { persistSession: false } });
   const { data: list, error: listErr } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (listErr) throw listErr;
   let user = list.users.find((u) => u.email?.toLowerCase() === email);

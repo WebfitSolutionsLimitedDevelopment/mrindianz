@@ -422,7 +422,7 @@ function PhotoUpload({ kind, label, required, state, error, onChange }: {
       if (!res.ok || !body.path || !body.token) throw new Error(body.error ?? "Upload could not start.");
       const supabase = createBrowserSupabase();
       if (!supabase) throw new Error("Uploads are not available yet.");
-      const { error: upErr } = await supabase.storage.from("application-media").uploadToSignedUrl(body.path, body.token, file, { contentType: file.type, upsert: false });
+      const { error: upErr } = await supabase.storage.from("mrindianz-applications").uploadToSignedUrl(body.path, body.token, file, { contentType: file.type, upsert: false });
       if (upErr) throw new Error("Upload failed. Please check your connection and retry.");
       onChange(kind, { path: body.path, name: file.name, previewUrl: URL.createObjectURL(file) });
       setStatus("idle");

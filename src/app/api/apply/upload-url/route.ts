@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
   const { kind, contentType, uploadSessionId } = parsed.data;
   const path = `drafts/${uploadSessionId}/${kind}-${crypto.randomUUID()}.${EXT_FOR_TYPE[contentType]}`;
-  const { data, error } = await db.storage.from("application-media").createSignedUploadUrl(path);
+  const { data, error } = await db.storage.from("mrindianz-applications").createSignedUploadUrl(path);
   if (error || !data) {
     console.warn(`[apply] signed upload failed: ${error?.message}`);
     return NextResponse.json({ error: "Could not prepare the upload. Please retry." }, { status: 502 });

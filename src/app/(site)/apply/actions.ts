@@ -11,7 +11,7 @@ export type SubmitResult =
   | { ok: true; reference: string; emailStatus: "sent" | "already_sent" | "not_configured" | "failed" | "unknown" }
   | { ok: false; error: string; fieldErrors?: Record<string, string> };
 
-const BUCKET = "application-media";
+const BUCKET = "mrindianz-applications";
 
 export async function submitApplication(payload: unknown): Promise<SubmitResult> {
   const reg = await getRegistrationState();

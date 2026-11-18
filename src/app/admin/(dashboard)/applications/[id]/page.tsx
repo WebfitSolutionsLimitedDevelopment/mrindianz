@@ -32,7 +32,7 @@ export default async function ApplicationDetail({ params, searchParams }: { para
   const service = createServiceClient();
   const signed: Record<string, string> = {};
   if (service && media?.length) {
-    const { data: urls } = await service.storage.from("application-media").createSignedUrls(media.map((m) => m.storage_path), 600);
+    const { data: urls } = await service.storage.from("mrindianz-applications").createSignedUrls(media.map((m) => m.storage_path), 600);
     for (const u of urls ?? []) if (u.signedUrl && u.path) signed[u.path] = u.signedUrl;
   }
 

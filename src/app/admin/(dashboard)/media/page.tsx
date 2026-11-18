@@ -14,7 +14,7 @@ async function removeMedia(formData: FormData) {
   const path = String(formData.get("path"));
   if (!/^(contestants|partners|site)\/[0-9a-f-]{36}\.(jpg|png|webp)$/.test(path)) back("/admin/media", { error: "Invalid path." });
   const db = createServiceClient();
-  if (db) await db.storage.from("public-media").remove([path]);
+  if (db) await db.storage.from("mrindianz-public").remove([path]);
   await audit(session.userId, "media_deleted", "storage", path);
   revalidatePath("/admin/media");
   back("/admin/media", { ok: "Image deleted. Remove it from any profile or partner that used it." });
@@ -25,7 +25,7 @@ export default async function MediaAdmin({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const db = createServiceClient();
   const folders = ["contestants", "partners", "site"] as const;
-  const lists = db ? await Promise.all(folders.map((f) => db.storage.from("public-media").list(f, { limit: 200, sortBy: { column: "created_at", order: "desc" } }))) : [];
+  const lists = db ? await Promise.all(folders.map((f) => db.storage.from("mrindianz-public").list(f, { limit: 200, sortBy: { column: "created_at", order: "desc" } }))) : [];
   return (
     <>
       <PageHeader title="Media library" description="Approved public images only. Applicant photographs are stored separately and privately and never appear here." />

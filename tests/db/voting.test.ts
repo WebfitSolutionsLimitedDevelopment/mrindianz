@@ -16,7 +16,7 @@ async function one<T = Record<string, unknown>>(sql: string, params: unknown[] =
 
 async function createOrder(opts: { campaign?: string; contestant?: string; pkg?: string; qty?: number; mode?: string; key?: string } = {}) {
   return one<{ id: string; total_cents: number; total_votes: number; status: string }>(
-    `select * from public.create_voting_order($1, $2, $3, $4, $5, 'Asha Supporter', 'Asha@Example.com', false, 'draft-2026-11', $6)`,
+    `select * from mrindianz.create_voting_order($1, $2, $3, $4, $5, 'Asha Supporter', 'Asha@Example.com', false, 'draft-2026-11', $6)`,
     [opts.key ?? crypto.randomUUID(), opts.campaign ?? demoCampaign, opts.contestant ?? contestants[0], opts.pkg ?? starter,
      opts.qty ?? 1, opts.mode ?? "demo"],
   );
@@ -24,11 +24,11 @@ async function createOrder(opts: { campaign?: string; contestant?: string; pkg?:
 
 async function payLive(orderId: string, eventId = `evt_${crypto.randomUUID()}`, amount?: number, pi = `pi_${crypto.randomUUID()}`) {
   const session = `cs_${orderId}`;
-  await db.query(`update public.voting_orders set stripe_checkout_session_id = null where id = $1 and status = 'pending'`, [orderId]);
-  const o = await one<{ status: string; total_cents: number; stripe_checkout_session_id: string | null }>(`select * from public.voting_orders where id = $1`, [orderId]);
-  if (!o.stripe_checkout_session_id) await db.query(`select public.attach_checkout_session($1, $2)`, [orderId, session]);
+  await db.query(`update mrindianz.voting_orders set stripe_checkout_session_id = null where id = $1 and status = 'pending'`, [orderId]);
+  const o = await one<{ status: string; total_cents: number; stripe_checkout_session_id: string | null }>(`select * from mrindianz.voting_orders where id = $1`, [orderId]);
+  if (!o.stripe_checkout_session_id) await db.query(`select mrindianz.attach_checkout_session($1, $2)`, [orderId, session]);
   const res = await one<{ r: string }>(
-    `select public.process_checkout_completed($1, 'test', $2, $3, $4, 'paid', $5, 'nzd') as r`,
+    `select mrindianz.process_checkout_completed($1, 'test', $2, $3, $4, 'paid', $5, 'nzd') as r`,
     [eventId, orderId, session, pi, amount ?? o.total_cents],
   );
   return { result: res.r, pi, session };
@@ -36,7 +36,7 @@ async function payLive(orderId: string, eventId = `evt_${crypto.randomUUID()}`, 
 
 async function tally(campaign: string, mode = "test") {
   const r = await db.query<{ slug: string; votes: number | null; rank: number | null }>(
-    `select slug, votes::int as votes, rank::int as rank from public.public_leaderboard($1, $2)`, [campaign, mode]);
+    `select slug, votes::int as votes, rank::int as rank from mrindianz.public_leaderboard($1, $2)`, [campaign, mode]);
   return r.rows;
 }
 
@@ -106,7 +106,7 @@ describe("order creation", () => {
 
   it("rejects mismatched terms version", async () => {
     await expect(db.query(
-      `select public.create_voting_order($1, $2, $3, $4, 1, 'A', 'a@b.co', false, 'old-version', 'demo')`,
+      `select mrindianz.create_voting_order($1, $2, $3, $4, 1, 'A', 'a@b.co', false, 'old-version', 'demo')`,
       [crypto.randomUUID(), demoCampaign, contestants[0], starter])).rejects.toThrow(/terms_version_mismatch/);
   });
 });
@@ -119,10 +119,10 @@ describe("payment processing and vote ledger", () => {
     const first = await payLive(o.id, evt);
     expect(first.result).toBe("processed");
     // same event delivered again
-    const again = await one<{ r: string }>(`select public.process_checkout_completed($1, 'test', $2, $3, $4, 'paid', $5, 'nzd') as r`, [evt, o.id, first.session, first.pi, 2200]);
+    const again = await one<{ r: string }>(`select mrindianz.process_checkout_completed($1, 'test', $2, $3, $4, 'paid', $5, 'nzd') as r`, [evt, o.id, first.session, first.pi, 2200]);
     expect(again.r).toBe("duplicate");
     // a different event id for the same order (e.g. async_payment_succeeded after completed)
-    const other = await one<{ r: string }>(`select public.process_checkout_completed($1, 'test', $2, $3, $4, 'paid', $5, 'nzd') as r`, [`evt_${crypto.randomUUID()}`, o.id, first.session, first.pi, 2200]);
+    const other = await one<{ r: string }>(`select mrindianz.process_checkout_completed($1, 'test', $2, $3, $4, 'paid', $5, 'nzd') as r`, [`evt_${crypto.randomUUID()}`, o.id, first.session, first.pi, 2200]);
     expect(other.r).toBe("duplicate");
     const after = (await tally(liveCampaign)).find((r) => r.slug === "demo-contestant-02")!.votes;
     expect((after ?? 0) - (before ?? 0)).toBe(120);
@@ -141,15 +141,15 @@ describe("payment processing and vote ledger", () => {
 
   it("rejects a session id that does not belong to the order", async () => {
     const o = await createOrder({ campaign: liveCampaign, pkg: livePkg, mode: "test" });
-    await db.query(`select public.attach_checkout_session($1, $2)`, [o.id, `cs_real_${o.id}`]);
-    const r = await one<{ r: string }>(`select public.process_checkout_completed($1, 'test', $2, 'cs_forged', null, 'paid', 2200, 'nzd') as r`, [`evt_${crypto.randomUUID()}`, o.id]);
+    await db.query(`select mrindianz.attach_checkout_session($1, $2)`, [o.id, `cs_real_${o.id}`]);
+    const r = await one<{ r: string }>(`select mrindianz.process_checkout_completed($1, 'test', $2, 'cs_forged', null, 'paid', 2200, 'nzd') as r`, [`evt_${crypto.randomUUID()}`, o.id]);
     expect(r.r).toBe("rejected:session_mismatch");
   });
 
   it("does not count pending, failed or expired orders", async () => {
     const o = await createOrder({ campaign: liveCampaign, pkg: livePkg, contestant: contestants[2], mode: "test" });
-    await db.query(`select public.attach_checkout_session($1, $2)`, [o.id, `cs_${o.id}`]);
-    const r = await one<{ r: string }>(`select public.process_checkout_failed($1, 'checkout.session.expired', 'test', $2, $3) as r`, [`evt_${crypto.randomUUID()}`, o.id, `cs_${o.id}`]);
+    await db.query(`select mrindianz.attach_checkout_session($1, $2)`, [o.id, `cs_${o.id}`]);
+    const r = await one<{ r: string }>(`select mrindianz.process_checkout_failed($1, 'checkout.session.expired', 'test', $2, $3) as r`, [`evt_${crypto.randomUUID()}`, o.id, `cs_${o.id}`]);
     expect(r.r).toBe("processed");
     expect((await one<{ status: string }>(`select status from voting_orders where id = $1`, [o.id])).status).toBe("expired");
     expect((await tally(liveCampaign)).find((x) => x.slug === "demo-contestant-03")!.votes).toBe(0);
@@ -157,23 +157,23 @@ describe("payment processing and vote ledger", () => {
 
   it("does not credit asynchronous payments that are not yet paid", async () => {
     const o = await createOrder({ campaign: liveCampaign, pkg: livePkg, mode: "test" });
-    await db.query(`select public.attach_checkout_session($1, $2)`, [o.id, `cs_${o.id}`]);
-    const r = await one<{ r: string }>(`select public.process_checkout_completed($1, 'test', $2, $3, null, 'unpaid', 2200, 'nzd') as r`, [`evt_${crypto.randomUUID()}`, o.id, `cs_${o.id}`]);
+    await db.query(`select mrindianz.attach_checkout_session($1, $2)`, [o.id, `cs_${o.id}`]);
+    const r = await one<{ r: string }>(`select mrindianz.process_checkout_completed($1, 'test', $2, $3, null, 'unpaid', 2200, 'nzd') as r`, [`evt_${crypto.randomUUID()}`, o.id, `cs_${o.id}`]);
     expect(r.r).toBe("ignored");
   });
 
   it("reverses votes on partial and full refunds via auditable ledger entries", async () => {
     const o = await createOrder({ campaign: liveCampaign, pkg: livePkg, contestant: contestants[3], qty: 2, mode: "test" }); // 4400c, 240 votes
     const { pi } = await payLive(o.id);
-    const partial = await one<{ r: string }>(`select public.process_refund($1, 'test', $2, 're_1', 1100, 'succeeded') as r`, [`evt_${crypto.randomUUID()}`, pi]);
+    const partial = await one<{ r: string }>(`select mrindianz.process_refund($1, 'test', $2, 're_1', 1100, 'succeeded') as r`, [`evt_${crypto.randomUUID()}`, pi]);
     expect(partial.r).toBe("processed");
-    expect((await one<{ v: number }>(`select public.order_net_votes($1) v`, [o.id])).v).toBe(180);
+    expect((await one<{ v: number }>(`select mrindianz.order_net_votes($1) v`, [o.id])).v).toBe(180);
     expect((await one<{ status: string }>(`select status from voting_orders where id = $1`, [o.id])).status).toBe("partially_refunded");
     // duplicate refund event with a new event id but same refund id
-    const dup = await one<{ r: string }>(`select public.process_refund($1, 'test', $2, 're_1', 1100, 'succeeded') as r`, [`evt_${crypto.randomUUID()}`, pi]);
+    const dup = await one<{ r: string }>(`select mrindianz.process_refund($1, 'test', $2, 're_1', 1100, 'succeeded') as r`, [`evt_${crypto.randomUUID()}`, pi]);
     expect(dup.r).toBe("duplicate");
-    await db.query(`select public.process_refund($1, 'test', $2, 're_2', 3300, 'succeeded')`, [`evt_${crypto.randomUUID()}`, pi]);
-    expect((await one<{ v: number }>(`select public.order_net_votes($1) v`, [o.id])).v).toBe(0);
+    await db.query(`select mrindianz.process_refund($1, 'test', $2, 're_2', 3300, 'succeeded')`, [`evt_${crypto.randomUUID()}`, pi]);
+    expect((await one<{ v: number }>(`select mrindianz.order_net_votes($1) v`, [o.id])).v).toBe(0);
     expect((await one<{ status: string }>(`select status from voting_orders where id = $1`, [o.id])).status).toBe("refunded");
     const entries = await db.query(`select entry_type, votes from vote_ledger where order_id = $1 order by created_at`, [o.id]);
     expect(entries.rows.length).toBe(3);
@@ -181,20 +181,20 @@ describe("payment processing and vote ledger", () => {
 
   it("asks Stripe to retry a refund that arrives before the payment is recorded (out of order)", async () => {
     const evt = `evt_${crypto.randomUUID()}`;
-    const r = await one<{ r: string }>(`select public.process_refund($1, 'test', 'pi_unknown', 're_x', 100, 'succeeded') as r`, [evt]);
+    const r = await one<{ r: string }>(`select mrindianz.process_refund($1, 'test', 'pi_unknown', 're_x', 100, 'succeeded') as r`, [evt]);
     expect(r.r).toBe("retry");
-    const again = await one<{ r: string }>(`select public.process_refund($1, 'test', 'pi_unknown', 're_x', 100, 'succeeded') as r`, [evt]);
+    const again = await one<{ r: string }>(`select mrindianz.process_refund($1, 'test', 'pi_unknown', 're_x', 100, 'succeeded') as r`, [evt]);
     expect(again.r).toBe("retry"); // still retryable, not swallowed as duplicate
   });
 
   it("reverses on dispute and reinstates once if the dispute is won", async () => {
     const o = await createOrder({ campaign: liveCampaign, pkg: livePkg, contestant: contestants[4], mode: "test" });
     const { pi } = await payLive(o.id);
-    await db.query(`select public.process_dispute($1, 'charge.dispute.created', 'test', $2, 'dp_1', 'needs_response', 2200, 'fraudulent')`, [`evt_${crypto.randomUUID()}`, pi]);
-    expect((await one<{ v: number }>(`select public.order_net_votes($1) v`, [o.id])).v).toBe(0);
-    await db.query(`select public.process_dispute($1, 'charge.dispute.closed', 'test', $2, 'dp_1', 'won', 2200, 'fraudulent')`, [`evt_${crypto.randomUUID()}`, pi]);
-    await db.query(`select public.process_dispute($1, 'charge.dispute.closed', 'test', $2, 'dp_1', 'won', 2200, 'fraudulent')`, [`evt_${crypto.randomUUID()}`, pi]);
-    expect((await one<{ v: number }>(`select public.order_net_votes($1) v`, [o.id])).v).toBe(120);
+    await db.query(`select mrindianz.process_dispute($1, 'charge.dispute.created', 'test', $2, 'dp_1', 'needs_response', 2200, 'fraudulent')`, [`evt_${crypto.randomUUID()}`, pi]);
+    expect((await one<{ v: number }>(`select mrindianz.order_net_votes($1) v`, [o.id])).v).toBe(0);
+    await db.query(`select mrindianz.process_dispute($1, 'charge.dispute.closed', 'test', $2, 'dp_1', 'won', 2200, 'fraudulent')`, [`evt_${crypto.randomUUID()}`, pi]);
+    await db.query(`select mrindianz.process_dispute($1, 'charge.dispute.closed', 'test', $2, 'dp_1', 'won', 2200, 'fraudulent')`, [`evt_${crypto.randomUUID()}`, pi]);
+    expect((await one<{ v: number }>(`select mrindianz.order_net_votes($1) v`, [o.id])).v).toBe(120);
   });
 
   it("keeps the ledger append-only", async () => {
@@ -215,12 +215,12 @@ describe("payment processing and vote ledger", () => {
 describe("leaderboard", () => {
   it("separates demo votes from test/live votes", async () => {
     const o = await createOrder({ contestant: contestants[0], qty: 10 });
-    expect((await one<{ r: string }>(`select public.complete_demo_order($1) r`, [o.id])).r).toBe("processed");
+    expect((await one<{ r: string }>(`select mrindianz.complete_demo_order($1) r`, [o.id])).r).toBe("processed");
     const demo = await tally(demoCampaign, "live");
     expect(demo.find((r) => r.slug === "demo-contestant-01")!.votes).toBe(200);
     const live = await tally(liveCampaign, "live");
     expect(live.every((r) => r.votes === 0)).toBe(true); // all prior payments were 'test' mode
-    await expect(db.query(`select public.complete_demo_order($1)`, [(await createOrder({ campaign: liveCampaign, pkg: livePkg, mode: "test" })).id])).rejects.toThrow(/not_a_demo_order/);
+    await expect(db.query(`select mrindianz.complete_demo_order($1)`, [(await createOrder({ campaign: liveCampaign, pkg: livePkg, mode: "test" })).id])).rejects.toThrow(/not_a_demo_order/);
   });
 
   it("assigns tied ranks", async () => {
@@ -234,12 +234,12 @@ describe("leaderboard", () => {
     await db.query(`update voting_campaigns set leaderboard_frozen_at = null, show_vote_counts = false, show_rankings = false where id = $1`, [liveCampaign]);
     const hidden = await tally(liveCampaign);
     expect(hidden.every((r) => r.votes === null && r.rank === null)).toBe(true);
-    expect((await one<{ t: number | null }>(`select public.public_vote_total($1, 'test') t`, [liveCampaign])).t).toBeNull();
+    expect((await one<{ t: number | null }>(`select mrindianz.public_vote_total($1, 'test') t`, [liveCampaign])).t).toBeNull();
     await db.query(`update voting_campaigns set show_vote_counts = true, show_rankings = true where id = $1`, [liveCampaign]);
   });
 
   it("voting history never exposes email or payment ids", async () => {
-    const rows = (await db.query<Record<string, unknown>>(`select * from public.public_voting_history($1, 'live', 10)`, [demoCampaign])).rows;
+    const rows = (await db.query<Record<string, unknown>>(`select * from mrindianz.public_voting_history($1, 'live', 10)`, [demoCampaign])).rows;
     expect(rows.length).toBeGreaterThan(0);
     for (const r of rows) {
       expect(Object.keys(r).sort()).toEqual(["approx_time", "contestant_name", "contestant_slug", "supporter", "votes"]);
@@ -252,7 +252,7 @@ describe("rate limiting", () => {
   it("allows up to the limit within a window", async () => {
     const key = `t:${crypto.randomUUID()}`;
     const results: boolean[] = [];
-    for (let i = 0; i < 4; i++) results.push((await one<{ ok: boolean }>(`select public.hit_rate_limit($1, 3600, 3) ok`, [key])).ok);
+    for (let i = 0; i < 4; i++) results.push((await one<{ ok: boolean }>(`select mrindianz.hit_rate_limit($1, 3600, 3) ok`, [key])).ok);
     expect(results).toEqual([true, true, true, false]);
   });
 });

@@ -4,37 +4,44 @@
 
 create extension if not exists pgcrypto with schema extensions;
 
+-- All Mr. IndiaNZ objects live in their own schema so the project can safely be shared with other
+-- sites (e.g. Miss India South Pacific). Nothing in this script touches the public schema.
+create schema if not exists mrindianz;
+grant usage on schema mrindianz to anon, authenticated, service_role;
+-- New functions are NOT executable by PUBLIC unless explicitly granted.
+alter default privileges in schema mrindianz revoke execute on functions from public;
+
 -- ---------------------------------------------------------------------------
 -- Enumerations
 -- ---------------------------------------------------------------------------
-create type public.admin_role as enum (
+create type mrindianz.admin_role as enum (
   'super_admin', 'organiser_admin', 'content_editor', 'application_reviewer', 'finance_viewer'
 );
 
-create type public.application_status as enum (
+create type mrindianz.application_status as enum (
   'new', 'in_review', 'shortlisted', 'offered', 'accepted', 'awaiting_payment',
   'confirmed', 'waitlisted', 'unsuccessful', 'withdrawn'
 );
 
-create type public.publication_status as enum ('draft', 'published', 'archived');
+create type mrindianz.publication_status as enum ('draft', 'published', 'archived');
 
-create type public.voting_status as enum ('draft', 'scheduled', 'open', 'paused', 'closed', 'finalised');
+create type mrindianz.voting_status as enum ('draft', 'scheduled', 'open', 'paused', 'closed', 'finalised');
 
-create type public.payment_mode as enum ('live', 'test', 'demo');
+create type mrindianz.payment_mode as enum ('live', 'test', 'demo');
 
-create type public.order_status as enum (
+create type mrindianz.order_status as enum (
   'pending', 'awaiting_payment', 'paid', 'failed', 'expired', 'cancelled',
   'refunded', 'partially_refunded', 'disputed', 'review_required'
 );
 
-create type public.ledger_entry_type as enum (
+create type mrindianz.ledger_entry_type as enum (
   'credit', 'refund_reversal', 'dispute_reversal', 'dispute_reinstatement', 'admin_adjustment'
 );
 
 -- ---------------------------------------------------------------------------
 -- Utility: updated_at trigger
 -- ---------------------------------------------------------------------------
-create or replace function public.set_updated_at() returns trigger
+create or replace function mrindianz.set_updated_at() returns trigger
 language plpgsql set search_path = '' as $$
 begin
   new.updated_at := now();
@@ -44,7 +51,7 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- Admin identity and roles
 -- ---------------------------------------------------------------------------
-create table public.profiles (
+create table mrindianz.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   email text not null,
   full_name text,
@@ -52,49 +59,49 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
-create table public.admin_roles (
+create table mrindianz.admin_roles (
   user_id uuid not null references auth.users (id) on delete cascade,
-  role public.admin_role not null,
+  role mrindianz.admin_role not null,
   granted_by uuid references auth.users (id) on delete set null,
   granted_at timestamptz not null default now(),
   primary key (user_id, role)
 );
-create index admin_roles_role_idx on public.admin_roles (role);
+create index admin_roles_role_idx on mrindianz.admin_roles (role);
 
 -- has_role(): true when the current user holds any of the given roles. super_admin implicitly passes.
-create or replace function public.has_role(roles public.admin_role[]) returns boolean
+create or replace function mrindianz.has_role(roles mrindianz.admin_role[]) returns boolean
 language sql stable security definer set search_path = '' as $$
   select exists (
-    select 1 from public.admin_roles ar
+    select 1 from mrindianz.admin_roles ar
     where ar.user_id = auth.uid()
       and (ar.role = any (roles) or ar.role = 'super_admin')
   );
 $$;
 
-create or replace function public.is_admin() returns boolean
+create or replace function mrindianz.is_admin() returns boolean
 language sql stable security definer set search_path = '' as $$
-  select exists (select 1 from public.admin_roles ar where ar.user_id = auth.uid());
+  select exists (select 1 from mrindianz.admin_roles ar where ar.user_id = auth.uid());
 $$;
 
 -- Prevent removing the final super admin (lock-out protection).
-create or replace function public.protect_last_super_admin() returns trigger
+create or replace function mrindianz.protect_last_super_admin() returns trigger
 language plpgsql set search_path = '' as $$
 begin
   if old.role = 'super_admin'
      and (tg_op = 'DELETE' or new.role <> 'super_admin')
-     and (select count(*) from public.admin_roles where role = 'super_admin') <= 1 then
+     and (select count(*) from mrindianz.admin_roles where role = 'super_admin') <= 1 then
     raise exception 'Cannot remove the last super_admin';
   end if;
   return coalesce(new, old);
 end $$;
 create trigger admin_roles_protect_last_super
-  before delete or update on public.admin_roles
-  for each row execute function public.protect_last_super_admin();
+  before delete or update on mrindianz.admin_roles
+  for each row execute function mrindianz.protect_last_super_admin();
 
 -- ---------------------------------------------------------------------------
 -- Event, settings and CMS
 -- ---------------------------------------------------------------------------
-create table public.events (
+create table mrindianz.events (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique check (slug ~ '^[a-z0-9-]+$'),
   name text not null,
@@ -105,7 +112,7 @@ create table public.events (
 );
 
 -- Key/value settings with a draft and a published value. Public reads see only `published`.
-create table public.site_settings (
+create table mrindianz.site_settings (
   key text primary key check (key ~ '^[a-z0-9_]+$'),
   published jsonb not null default '{}'::jsonb,
   draft jsonb,
@@ -116,7 +123,7 @@ create table public.site_settings (
   published_at timestamptz
 );
 
-create table public.content_pages (
+create table mrindianz.content_pages (
   id uuid primary key default gen_random_uuid(),
   slug text not null unique,
   title text not null,
@@ -125,9 +132,9 @@ create table public.content_pages (
   updated_at timestamptz not null default now()
 );
 
-create table public.content_sections (
+create table mrindianz.content_sections (
   id uuid primary key default gen_random_uuid(),
-  page_slug text not null references public.content_pages (slug) on update cascade on delete cascade,
+  page_slug text not null references mrindianz.content_pages (slug) on update cascade on delete cascade,
   key text not null check (key ~ '^[a-z0-9_]+$'),
   sort_order int not null default 0,
   draft jsonb,
@@ -141,7 +148,7 @@ create table public.content_sections (
   unique (page_slug, key)
 );
 
-create table public.faqs (
+create table mrindianz.faqs (
   id uuid primary key default gen_random_uuid(),
   question text not null check (char_length(question) between 3 and 300),
   answer text not null check (char_length(answer) between 1 and 4000),
@@ -152,9 +159,9 @@ create table public.faqs (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index faqs_published_idx on public.faqs (is_published, sort_order);
+create index faqs_published_idx on mrindianz.faqs (is_published, sort_order);
 
-create table public.partners (
+create table mrindianz.partners (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   category text not null check (category in ('presenting', 'major', 'supporting', 'media', 'community')),
@@ -173,11 +180,11 @@ create table public.partners (
 -- ---------------------------------------------------------------------------
 -- Applications (private)
 -- ---------------------------------------------------------------------------
-create table public.applications (
+create table mrindianz.applications (
   id uuid primary key default gen_random_uuid(),
   reference text not null unique default ('MINZ27-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8))),
   client_submission_id uuid not null unique, -- duplicate-submission protection
-  status public.application_status not null default 'new',
+  status mrindianz.application_status not null default 'new',
   legal_name text not null check (char_length(legal_name) between 2 and 120),
   stage_name text check (stage_name is null or char_length(stage_name) <= 80),
   date_of_birth date not null,
@@ -207,12 +214,12 @@ create table public.applications (
     check (not talent_audition or anonymised_at is not null or (talent_description is not null and char_length(talent_description) > 0)),
   constraint applications_marketing_timestamp check (not marketing_opt_in or marketing_consent_at is not null)
 );
-create index applications_status_idx on public.applications (status, submitted_at desc);
-create index applications_email_idx on public.applications (lower(email));
+create index applications_status_idx on mrindianz.applications (status, submitted_at desc);
+create index applications_email_idx on mrindianz.applications (lower(email));
 
-create table public.application_media (
+create table mrindianz.application_media (
   id uuid primary key default gen_random_uuid(),
-  application_id uuid not null references public.applications (id) on delete cascade,
+  application_id uuid not null references mrindianz.applications (id) on delete cascade,
   kind text not null check (kind in ('headshot', 'full_length', 'traditional')),
   storage_path text not null unique,
   mime_type text not null check (mime_type in ('image/jpeg', 'image/png', 'image/webp')),
@@ -221,35 +228,35 @@ create table public.application_media (
   unique (application_id, kind)
 );
 
-create table public.application_status_history (
+create table mrindianz.application_status_history (
   id uuid primary key default gen_random_uuid(),
-  application_id uuid not null references public.applications (id) on delete cascade,
-  from_status public.application_status,
-  to_status public.application_status not null,
+  application_id uuid not null references mrindianz.applications (id) on delete cascade,
+  from_status mrindianz.application_status,
+  to_status mrindianz.application_status not null,
   changed_by uuid references auth.users (id) on delete set null,
   note text,
   changed_at timestamptz not null default now()
 );
-create index application_status_history_app_idx on public.application_status_history (application_id, changed_at);
+create index application_status_history_app_idx on mrindianz.application_status_history (application_id, changed_at);
 
-create table public.application_notes (
+create table mrindianz.application_notes (
   id uuid primary key default gen_random_uuid(),
-  application_id uuid not null references public.applications (id) on delete cascade,
+  application_id uuid not null references mrindianz.applications (id) on delete cascade,
   author_id uuid references auth.users (id) on delete set null,
   body text not null check (char_length(body) between 1 and 4000),
   created_at timestamptz not null default now()
 );
 
 -- Contestant fee (NZ$350) — separate from voting. Disabled until fee/GST/refund terms are approved.
-create table public.contestant_fee_payments (
+create table mrindianz.contestant_fee_payments (
   id uuid primary key default gen_random_uuid(),
-  application_id uuid not null references public.applications (id) on delete restrict,
+  application_id uuid not null references mrindianz.applications (id) on delete restrict,
   amount_cents int not null check (amount_cents > 0),
   currency text not null default 'NZD' check (currency = 'NZD'),
   status text not null default 'not_started' check (status in ('not_started', 'link_sent', 'paid', 'refunded', 'waived', 'cancelled')),
   stripe_checkout_session_id text unique,
   stripe_payment_intent_id text unique,
-  payment_mode public.payment_mode,
+  payment_mode mrindianz.payment_mode,
   paid_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -258,9 +265,9 @@ create table public.contestant_fee_payments (
 -- ---------------------------------------------------------------------------
 -- Contestants (public once published)
 -- ---------------------------------------------------------------------------
-create table public.contestants (
+create table mrindianz.contestants (
   id uuid primary key default gen_random_uuid(),
-  application_id uuid unique references public.applications (id) on delete set null,
+  application_id uuid unique references mrindianz.applications (id) on delete set null,
   -- Permanent identifier used in URLs and QR codes. Never changes, even when the public name changes.
   slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(slug) <= 60),
   contestant_number int unique check (contestant_number is null or contestant_number between 1 and 999),
@@ -272,7 +279,7 @@ create table public.contestants (
   talent_info text check (talent_info is null or char_length(talent_info) <= 1000),
   social_links jsonb not null default '{}'::jsonb,
   profile_image_path text,
-  publication_status public.publication_status not null default 'draft',
+  publication_status mrindianz.publication_status not null default 'draft',
   voting_eligible boolean not null default false,
   sort_order int not null default 0,
   published_at timestamptz,
@@ -280,9 +287,9 @@ create table public.contestants (
   updated_at timestamptz not null default now(),
   constraint contestants_voting_requires_published check (not voting_eligible or publication_status = 'published')
 );
-create index contestants_public_idx on public.contestants (publication_status, contestant_number);
+create index contestants_public_idx on mrindianz.contestants (publication_status, contestant_number);
 
-create or replace function public.contestants_guard() returns trigger
+create or replace function mrindianz.contestants_guard() returns trigger
 language plpgsql set search_path = '' as $$
 begin
   if tg_op = 'UPDATE' and new.slug <> old.slug then
@@ -293,12 +300,12 @@ begin
   end if;
   return new;
 end $$;
-create trigger contestants_guard before insert or update on public.contestants
-  for each row execute function public.contestants_guard();
+create trigger contestants_guard before insert or update on mrindianz.contestants
+  for each row execute function mrindianz.contestants_guard();
 
-create table public.contestant_media (
+create table mrindianz.contestant_media (
   id uuid primary key default gen_random_uuid(),
-  contestant_id uuid not null references public.contestants (id) on delete cascade,
+  contestant_id uuid not null references mrindianz.contestants (id) on delete cascade,
   storage_path text not null,
   alt_text text not null default '' check (char_length(alt_text) <= 200),
   sort_order int not null default 0,
@@ -308,7 +315,7 @@ create table public.contestant_media (
 -- ---------------------------------------------------------------------------
 -- Contact, email and audit
 -- ---------------------------------------------------------------------------
-create table public.contact_submissions (
+create table mrindianz.contact_submissions (
   id uuid primary key default gen_random_uuid(),
   name text not null check (char_length(name) between 2 and 100),
   email text not null check (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
@@ -318,7 +325,7 @@ create table public.contact_submissions (
   created_at timestamptz not null default now()
 );
 
-create table public.email_templates (
+create table mrindianz.email_templates (
   key text primary key check (key ~ '^[a-z0-9_]+$'),
   name text not null,
   subject text not null,
@@ -329,7 +336,7 @@ create table public.email_templates (
   updated_at timestamptz not null default now()
 );
 
-create table public.email_delivery_logs (
+create table mrindianz.email_delivery_logs (
   id uuid primary key default gen_random_uuid(),
   template_key text not null,
   dedupe_key text not null unique, -- duplicate-send prevention
@@ -342,7 +349,7 @@ create table public.email_delivery_logs (
   updated_at timestamptz not null default now()
 );
 
-create table public.audit_logs (
+create table mrindianz.audit_logs (
   id uuid primary key default gen_random_uuid(),
   actor_id uuid,
   action text not null,
@@ -351,10 +358,10 @@ create table public.audit_logs (
   details jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
-create index audit_logs_created_idx on public.audit_logs (created_at desc);
-create index audit_logs_entity_idx on public.audit_logs (entity_type, entity_id);
+create index audit_logs_created_idx on mrindianz.audit_logs (created_at desc);
+create index audit_logs_entity_idx on mrindianz.audit_logs (entity_type, entity_id);
 
-create table public.rate_limits (
+create table mrindianz.rate_limits (
   key text not null,
   window_start timestamptz not null,
   hits int not null default 0,
@@ -368,6 +375,6 @@ begin
   foreach t in array array['profiles','events','site_settings','content_pages','content_sections','faqs','partners',
     'applications','contestant_fee_payments','contestants','email_templates','email_delivery_logs']
   loop
-    execute format('create trigger %I_updated_at before update on public.%I for each row execute function public.set_updated_at()', t, t);
+    execute format('create trigger %I_updated_at before update on mrindianz.%I for each row execute function mrindianz.set_updated_at()', t, t);
   end loop;
 end $$;
