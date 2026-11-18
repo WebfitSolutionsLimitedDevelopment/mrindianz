@@ -98,7 +98,8 @@ export async function getLeaderboard(campaignId: string): Promise<LeaderboardRow
     console.warn(`[voting] leaderboard: ${error.message}`);
     return [];
   }
-  return (data ?? []).map((r: { contestant_id: string; slug: string; contestant_number: number | null; public_name: string; profile_image_path: string | null; votes: number | null; rank: number | null }) => ({
+  const rows = (data ?? []).filter((r: { slug: string }) => !(appEnv() === "production" && r.slug.startsWith("demo-")));
+  return rows.map((r: { contestant_id: string; slug: string; contestant_number: number | null; public_name: string; profile_image_path: string | null; votes: number | null; rank: number | null }) => ({
     contestantId: r.contestant_id, slug: r.slug, number: r.contestant_number, name: r.public_name,
     imageUrl: publicMediaUrl(r.profile_image_path), votes: r.votes === null ? null : Number(r.votes), rank: r.rank === null ? null : Number(r.rank),
   }));

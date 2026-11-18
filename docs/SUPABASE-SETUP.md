@@ -1,4 +1,6 @@
-# Supabase setup (shared project, e.g. Miss India South Pacific `cregrerrzywgvbkyjlmg`)
+# Supabase setup — shared with Miss India South Pacific (`cregrerrzywgvbkyjlmg`)
+
+**Decision (18 Nov 2026, organiser):** Mr. IndiaNZ uses the Miss India South Pacific Supabase project for staging and production, as the same organiser runs both events. Isolation is by schema (`mrindianz`) and bucket names.
 
 Everything Mr. IndiaNZ creates lives in the **`mrindianz` schema** and the buckets **`mrindianz-applications`** (private) and **`mrindianz-public`**. Nothing in `public` is created, changed or revoked.
 
@@ -26,7 +28,8 @@ Everything Mr. IndiaNZ creates lives in the **`mrindianz` schema** and the bucke
 
 - Admin invite / password-reset emails use the project's (Miss India) email templates and sender.
 - One service-role key can read both sites' data — keep it in Vercel only.
-- Compute, storage quotas and backups are shared. A separate project is recommended for production.
+- Compute, storage quotas and backups are shared.
+- Staging and production read the SAME data. Never run `02-mrindianz-demo-seed.sql` once real contestants exist; demo profiles (slug `demo-…`) are hidden on production as a safeguard.
 
 ## Undo (removes ONLY Mr. IndiaNZ)
 

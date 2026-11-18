@@ -2,6 +2,10 @@ import "server-only";
 import { cache } from "react";
 import { createPublicClient } from "@/lib/supabase/server";
 import { publicMediaUrl } from "@/lib/content/repo";
+import { appEnv } from "@/lib/env";
+
+/** Demo placeholder profiles (slug "demo-…") are never shown on production, even in a shared database. */
+export const hideDemo = () => appEnv() === "production";
 
 export interface PublicContestant {
   id: string;
@@ -49,12 +53,9 @@ export function sanitiseSocialLinks(links: Record<string, unknown>): Record<stri
 export const getPublishedContestants = cache(async (): Promise<PublicContestant[]> => {
   const db = createPublicClient();
   if (!db) return [];
-  const { data, error } = await db
-    .from("contestants")
-    .select(PUBLIC_COLUMNS)
-    .eq("publication_status", "published")
-    .order("contestant_number", { ascending: true, nullsFirst: false })
-    .order("public_name");
+  let q = db.from("contestants").select(PUBLIC_COLUMNS).eq("publication_status", "published");
+  if (hideDemo()) q = q.not("slug", "like", "demo-%");
+  const { data, error } = await q.order("contestant_number", { ascending: true, nullsFirst: false }).order("public_name");
   if (error) {
     console.warn(`[contestants] list: ${error.message}`);
     return [];
@@ -64,6 +65,7 @@ export const getPublishedContestants = cache(async (): Promise<PublicContestant[
 
 export const getContestantBySlug = cache(async (slug: string): Promise<PublicContestant | null> => {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return null;
+  if (hideDemo() && slug.startsWith("demo-")) return null;
   const db = createPublicClient();
   if (!db) return null;
   const { data, error } = await db
