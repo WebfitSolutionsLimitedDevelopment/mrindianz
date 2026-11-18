@@ -11,18 +11,18 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   return (
     <>
       {env !== "production" && (
-        <div className="bg-gold px-4 py-1.5 text-center text-xs font-semibold text-ink" role="note">
-          {env === "staging" ? "STAGING" : "DEVELOPMENT"} environment — not the live website. No real payments are taken.
+        <div className="fixed inset-x-0 bottom-0 z-50 bg-gold px-4 py-1 text-center text-[11px] font-semibold text-ink" role="note">
+          {env === "staging" ? "STAGING" : "DEVELOPMENT"} — not the live website. No real payments are taken.
         </div>
       )}
       {settings.announcement.enabled && settings.announcement.text && (
-        <div className="border-b border-gold/30 bg-charcoal px-4 py-2 text-center text-sm text-ivory">
+        <div className="fixed inset-x-0 top-0 z-50 flex h-9 items-center justify-center bg-gold px-4 text-center text-xs font-medium text-ink sm:text-sm">
           {settings.announcement.href ? (
-            <Link href={settings.announcement.href} className="underline decoration-gold underline-offset-4 hover:text-gold">{settings.announcement.text}</Link>
+            <Link href={settings.announcement.href} className="underline underline-offset-4">{settings.announcement.text}</Link>
           ) : settings.announcement.text}
         </div>
       )}
-      <SiteHeader cta={ctaForState(reg)} />
+      <SiteHeader cta={ctaForState(reg)} offsetTop={settings.announcement.enabled && settings.announcement.text ? 36 : 0} />
       <main id="main" tabIndex={-1} className="outline-none">{children}</main>
       <SiteFooter settings={settings} />
     </>

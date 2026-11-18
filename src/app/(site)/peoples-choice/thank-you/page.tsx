@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Section } from "@/components/ui/section";
+import { PageHero } from "@/components/site/page-hero";
 import { ButtonLink } from "@/components/ui/button";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatCents } from "@/lib/format";
@@ -24,28 +25,29 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
   }
   const paid = order?.status === "paid";
   return (
-    <Section tone="dark">
-      <div className="mx-auto max-w-2xl" role="status">
-        <div aria-hidden className="rule-gold mb-10 w-24" />
-        <h1 className="text-4xl sm:text-6xl">Thank you for your support</h1>
+    <>
+    <PageHero eyebrow="People's Choice" title={<>Thank you for your <em className="text-gold-gradient">support</em>.</>} />
+    <Section tone="cream">
+      <div className="card mx-auto max-w-2xl p-8 sm:p-12" role="status">
         {order ? (
           <>
-            <p className="mt-6 text-lg text-ivory/90">
+            <p className="text-lg text-espresso">
               {paid
                 ? <>Your payment has been verified and <strong>{order.total_votes.toLocaleString("en-NZ")} votes</strong> have been credited to {order.contestants?.public_name}.</>
                 : <>We&apos;re confirming your payment. Your {order.total_votes.toLocaleString("en-NZ")} votes for {order.contestants?.public_name} will be credited as soon as the payment is verified — usually within a minute.</>}
             </p>
-            <dl className="mt-8 grid gap-4 border border-line p-5 sm:grid-cols-2">
+            <dl className="mt-8 grid gap-4 rounded-2xl bg-ink p-6 text-ivory sm:grid-cols-2">
               <div><dt className="text-xs uppercase tracking-[0.14em] text-mist">Order reference</dt><dd className="mt-1 font-mono text-gold">{order.public_ref}</dd></div>
               <div><dt className="text-xs uppercase tracking-[0.14em] text-mist">Amount</dt><dd className="mt-1">{formatCents(order.total_cents)}</dd></div>
             </dl>
-            {order.contestants && <div className="mt-8"><ButtonLink href={`/contestants/${order.contestants.slug}`} variant="secondary">Back to {order.contestants.public_name}</ButtonLink></div>}
+            {order.contestants && <div className="mt-8"><ButtonLink href={`/contestants/${order.contestants.slug}`} variant="outline">Back to {order.contestants.public_name}</ButtonLink></div>}
           </>
         ) : (
-          <p className="mt-6 text-mist">If you completed a payment, your votes will be credited once the payment is verified. A receipt will be emailed to you.</p>
+          <p className="text-stone">If you completed a payment, your votes will be credited once the payment is verified. A receipt will be emailed to you.</p>
         )}
         <div className="mt-6"><ButtonLink href="/peoples-choice" variant="ghost">View the leaderboard</ButtonLink></div>
       </div>
     </Section>
+    </>
   );
 }

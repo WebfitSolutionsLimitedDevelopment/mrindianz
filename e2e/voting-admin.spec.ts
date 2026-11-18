@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("People's Choice shows an announcement state and never a live payment button without configuration", async ({ page }) => {
   await page.goto("/peoples-choice");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("People's Choice");
+  await expect(page.getByText("People's Choice Award").first()).toBeVisible();
   await expect(page.getByRole("button", { name: /^Pay /i })).toHaveCount(0);
 });
 

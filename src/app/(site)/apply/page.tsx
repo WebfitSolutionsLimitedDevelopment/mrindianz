@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Section, SectionHeading } from "@/components/ui/section";
+import { Section } from "@/components/ui/section";
+import { PageHero } from "@/components/site/page-hero";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button";
 import { ApplyForm } from "@/components/forms/apply-form";
@@ -21,21 +22,21 @@ export default async function ApplyPage() {
 
   return (
     <>
-      <Section tone="dark" className="border-b border-line pb-10 sm:pb-12">
-        <SectionHeading as="h1" eyebrow="Free application" title="Apply for Mr. IndiaNZ 2027"
-          intro={<>Applying is free. No prior modelling or pageant experience is required. The form has four short steps.</>} />
+      <PageHero eyebrow="Free application" title={<>Apply for <em className="text-gold-gradient">Mr. IndiaNZ 2027</em>.</>}
+        intro="Applying is free. No prior modelling or pageant experience is required. The form has four short steps.">
         {reg.state === "open" && (
           <p className="text-sm text-mist">Applications close {formatNzDateTime(reg.closesAt)} (NZ time){!registration.datesApproved && " — proposed date, subject to confirmation"}.</p>
         )}
         {reg.state === "open" && reg.stagingOverride && (
-          <p className="mt-4 border border-gold p-3 text-sm text-gold" role="note">
+          <p className="mt-4 max-w-2xl rounded-2xl border border-gold/50 bg-gold/10 p-4 text-sm text-gold-bright" role="note">
             Test environment: registration is open for testing even though eligibility, age policy or legal terms are still pending approval.
           </p>
         )}
-      </Section>
-      <Section tone="dark" className="pt-10 sm:pt-12">
+      </PageHero>
+      <Section tone="cream" className="pt-12 sm:pt-16">
         <div className="mx-auto max-w-4xl">
           {reg.state === "open" ? (
+            <div className="card p-6 sm:p-12">
             <ApplyForm
               policy={{ minimumAge: registration.minimumAge, referenceDate: registration.ageReferenceDate, approved: registration.agePolicyApproved }}
               feeDisclosure={FEE_DISCLOSURE}
@@ -44,6 +45,7 @@ export default async function ApplyPage() {
               rehearsalDisplay={event.rehearsalDisplay}
               finaleDisplay={event.finaleDisplay}
             />
+            </div>
           ) : reg.state === "closed" ? (
             <EmptyState title="Applications have closed" action={<ButtonLink href="/contestants" variant="secondary">Meet the contestants</ButtonLink>}>
               Thank you for your interest in Mr. IndiaNZ 2027.

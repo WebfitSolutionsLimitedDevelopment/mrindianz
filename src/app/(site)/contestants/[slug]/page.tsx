@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Section } from "@/components/ui/section";
+import { ButtonLink } from "@/components/ui/button";
+import { StageBackdrop } from "@/components/site/stage";
 import { PortraitPlaceholder } from "@/components/site/contestant-card";
 import { ShareTools } from "@/components/site/share-tools";
 import { JsonLd } from "@/components/site/json-ld";
@@ -49,75 +51,97 @@ export default async function ContestantPage({ params, searchParams }: Props) {
           { "@type": "ListItem", position: 3, name: c.name, item: url },
         ],
       }} />
-      <Section tone="dark" className="border-b border-line pt-8 sm:pt-10">
-        <nav aria-label="Breadcrumb" className="mb-8 text-sm text-mist">
-          <ol className="flex flex-wrap gap-2">
-            <li><Link href="/" className="hover:text-gold">Home</Link> /</li>
-            <li><Link href="/contestants" className="hover:text-gold">Contestants</Link> /</li>
-            <li aria-current="page" className="text-ivory">{c.name}</li>
-          </ol>
-        </nav>
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-          <div className="aspect-[4/5] w-full overflow-hidden border border-line">
-            {c.imageUrl ? <img src={c.imageUrl} alt={`Portrait of ${c.name}`} className="h-full w-full object-cover object-top" fetchPriority="high" /> : <PortraitPlaceholder name={c.name} number={c.number} />}
+      <section className="on-dark relative isolate overflow-hidden bg-ink pb-20 pt-32 text-ivory sm:pt-40">
+        <StageBackdrop intensity="soft" />
+        <div className="container-x relative">
+          <nav aria-label="Breadcrumb" className="mb-10 text-xs uppercase tracking-[0.18em] text-mist">
+            <ol className="flex flex-wrap gap-2">
+              <li><Link href="/" className="hover:text-gold">Home</Link> /</li>
+              <li><Link href="/contestants" className="hover:text-gold">Contestants</Link> /</li>
+              <li aria-current="page" className="text-white">{c.name}</li>
+            </ol>
+          </nav>
+          <div className="grid items-end gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[1.75rem] shadow-[0_40px_80px_-30px_rgba(0,0,0,.9)] ring-1 ring-gold/30">
+              {c.imageUrl ? <img src={c.imageUrl} alt={`Portrait of ${c.name}`} className="h-full w-full object-cover object-top" fetchPriority="high" /> : <PortraitPlaceholder name={c.name} number={c.number} />}
+            </div>
+            <div className="pb-4">
+              {c.number !== null && <p className="eyebrow eyebrow-dark">Contestant {String(c.number).padStart(2, "0")}</p>}
+              <h1 className="mt-4 text-5xl leading-[1.02] text-white sm:text-7xl">{c.name}</h1>
+              {c.cityRegion && <p className="mt-3 text-lg text-mist">{c.cityRegion}</p>}
+              <div className="rule-gold mt-7" />
+              {row && (row.votes !== null || row.rank !== null) && (
+                <div className="mt-8 flex flex-wrap gap-4">
+                  {row.rank !== null && <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4"><p className="font-display text-4xl text-gold-gradient">#{row.rank}</p><p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-mist">People&apos;s Choice</p></div>}
+                  {row.votes !== null && <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4"><p className="font-display text-4xl text-gold-gradient">{row.votes.toLocaleString("en-NZ")}</p><p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-mist">Verified votes</p></div>}
+                </div>
+              )}
+              <div className="mt-9 flex flex-wrap gap-4">
+                {votingOpen && <ButtonLink href="#vote" size="lg">Vote &amp; Support</ButtonLink>}
+                <ShareTools url={url} title={`${c.name} — Mr. IndiaNZ 2027`} />
+              </div>
+            </div>
           </div>
+        </div>
+      </section>
+
+      <Section tone="ivory" labelledBy="bio-h">
+        <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr]">
           <div>
-            {c.number !== null && <p className="eyebrow">Contestant {String(c.number).padStart(2, "0")}</p>}
-            <h1 className="mt-2 text-5xl sm:text-7xl">{c.name}</h1>
-            {c.cityRegion && <p className="mt-2 text-lg text-mist">{c.cityRegion}</p>}
-            {row && (row.votes !== null || row.rank !== null) && (
-              <p className="mt-6 flex gap-6 text-sm">
-                {row.rank !== null && <span><span className="font-display text-4xl text-gold">#{row.rank}</span> <span className="text-mist">People&apos;s Choice</span></span>}
-                {row.votes !== null && <span><span className="font-display text-4xl text-gold">{row.votes.toLocaleString("en-NZ")}</span> <span className="text-mist">verified votes</span></span>}
-              </p>
-            )}
-            <div className="prose-site mt-8 text-ivory/90">
+            <p className="eyebrow">Biography</p>
+            <h2 id="bio-h" className="mt-3 text-4xl text-espresso">About {c.name.split(" ")[0]}</h2>
+            <div className="rule-gold mt-6" />
+            <div className="prose-site mt-8 text-stone">
               {paragraphs(c.biography ?? c.shortBio).map((p, i) => <p key={i}>{p}</p>)}
             </div>
-            {c.interests.length > 0 && (
-              <div className="mt-8"><h2 className="eyebrow font-sans">Interests</h2>
-                <ul className="mt-3 flex flex-wrap gap-2">{c.interests.map((i) => <li key={i} className="border border-line px-3 py-1 text-sm">{i}</li>)}</ul>
-              </div>
-            )}
-            {c.talentInfo && <div className="mt-8"><h2 className="eyebrow font-sans">Mr. Talent</h2><p className="mt-2 text-ivory/90">{c.talentInfo}</p></div>}
-            {Object.keys(c.socialLinks).length > 0 && (
-              <div className="mt-8"><h2 className="eyebrow font-sans">Follow</h2>
-                <ul className="mt-3 flex flex-wrap gap-4">{Object.entries(c.socialLinks).map(([k, v]) => <li key={k}><a href={v} target="_blank" rel="noopener noreferrer" className="capitalize text-gold underline">{k}<span className="sr-only"> (opens in a new tab)</span></a></li>)}</ul>
-              </div>
-            )}
-            <div className="mt-10 space-y-4 border-t border-line pt-8">
-              <ShareTools url={url} title={`${c.name} — Mr. IndiaNZ 2027`} />
-            </div>
           </div>
+          <aside className="space-y-5">
+            {c.interests.length > 0 && (
+              <div className="card p-6"><p className="eyebrow">Interests</p>
+                <ul className="mt-4 flex flex-wrap gap-2">{c.interests.map((i) => <li key={i} className="rounded-full border border-espresso/15 px-3 py-1 text-sm text-espresso">{i}</li>)}</ul>
+              </div>
+            )}
+            {c.talentInfo && <div className="card p-6"><p className="eyebrow">Mr. Talent</p><p className="mt-3 text-stone">{c.talentInfo}</p></div>}
+            {Object.keys(c.socialLinks).length > 0 && (
+              <div className="card p-6"><p className="eyebrow">Follow</p>
+                <ul className="mt-4 flex flex-wrap gap-2">{Object.entries(c.socialLinks).map(([k, v]) => <li key={k}><a href={v} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-full bg-ink px-4 py-1.5 text-xs uppercase tracking-[0.14em] text-gold hover:bg-charcoal-2">{k}<span className="sr-only"> (opens in a new tab)</span></a></li>)}</ul>
+              </div>
+            )}
+            <div className="card p-6">
+              <p className="eyebrow">Profile QR code</p>
+              <div className="mt-4 flex items-center gap-5">
+                <img src={`/api/qr/${c.slug}?format=svg`} alt={`QR code linking to ${c.name}'s profile`} width={120} height={120} className="h-28 w-28 rounded-lg border border-espresso/10 bg-white p-1.5" />
+                <div className="space-y-2 text-sm">
+                  <a href={`/api/qr/${c.slug}?format=png&download=1`} className="block text-gold-ink underline">Download PNG</a>
+                  <a href={`/api/qr/${c.slug}?format=svg&download=1`} className="block text-gold-ink underline">Download SVG</a>
+                  <Link href={`/contestants/${c.slug}/qr`} className="block text-gold-ink underline">Print-friendly</Link>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       </Section>
 
       {gallery.length > 0 && (
-        <Section tone="charcoal" labelledBy="gallery-h">
-          <h2 id="gallery-h" className="mb-8 text-4xl">Gallery</h2>
+        <Section tone="cream" labelledBy="gallery-h">
+          <h2 id="gallery-h" className="mb-8 text-4xl text-espresso">Gallery</h2>
           <ul className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {gallery.map((g) => g.url && <li key={g.id} className="aspect-[4/5] overflow-hidden"><img src={g.url} alt={g.alt || `Photo of ${c.name}`} loading="lazy" className="h-full w-full object-cover" /></li>)}
+            {gallery.map((g) => g.url && <li key={g.id} className="aspect-[4/5] overflow-hidden rounded-2xl"><img src={g.url} alt={g.alt || `Photo of ${c.name}`} loading="lazy" className="h-full w-full object-cover" /></li>)}
           </ul>
         </Section>
       )}
 
-      <Section tone="dark" id="vote" labelledBy="vote-h">
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.4fr]">
+      <section id="vote" aria-labelledby="vote-h" className="on-dark relative isolate scroll-mt-20 overflow-hidden bg-ink py-20 text-ivory sm:py-28">
+        <StageBackdrop intensity="soft" />
+        <div className="container-x relative grid gap-12 lg:grid-cols-[1fr_1.4fr]">
           <div>
-            <p className="eyebrow">People&apos;s Choice</p>
-            <h2 id="vote-h" className="mt-2 text-4xl sm:text-5xl">Vote &amp; Support {c.name}</h2>
-            <p className="mt-4 text-mist">{voting ? VOTING_STATE_LABELS[voting.state] : "People's Choice voting has not been announced yet."} The People&apos;s Choice Award is separate from the main title.</p>
-            {sp.checkout === "cancelled" && <p role="status" className="mt-4 border border-gold/60 p-3 text-sm text-gold">Checkout was cancelled. You have not been charged.</p>}
-            <div className="mt-8 border border-line bg-white p-4 sm:max-w-[220px]">
-              <img src={`/api/qr/${c.slug}?format=svg`} alt={`QR code linking to ${c.name}'s profile`} width={200} height={200} className="h-auto w-full" />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-4 text-sm">
-              <a href={`/api/qr/${c.slug}?format=png&download=1`} className="text-gold underline">Download QR (PNG)</a>
-              <a href={`/api/qr/${c.slug}?format=svg&download=1`} className="text-gold underline">Download QR (SVG)</a>
-              <Link href={`/contestants/${c.slug}/qr`} className="text-gold underline">Print-friendly</Link>
-            </div>
+            <p className="eyebrow eyebrow-dark">People&apos;s Choice</p>
+            <h2 id="vote-h" className="mt-4 text-4xl text-white sm:text-5xl">Vote &amp; support <em className="text-gold-gradient">{c.name.split(" ")[0]}</em></h2>
+            <div className="rule-gold mt-6" />
+            <p className="mt-6 text-mist">{voting ? VOTING_STATE_LABELS[voting.state] : "People's Choice voting has not been announced yet."} The People&apos;s Choice Award is separate from the main title.</p>
+            {sp.checkout === "cancelled" && <p role="status" className="mt-5 rounded-2xl border border-gold/50 p-4 text-sm text-gold">Checkout was cancelled. You have not been charged.</p>}
           </div>
-          <div>
+          <div className="card p-6 text-espresso sm:p-10">
             {votingOpen && voting ? (
               <VoteFlow
                 campaignId={voting.campaign.id}
@@ -130,11 +154,11 @@ export default async function ContestantPage({ params, searchParams }: Props) {
                 priceNote={voting.campaign.price_note}
               />
             ) : (
-              <p className="border border-line p-6 text-mist">Voting is not open for this contestant right now. <Link href="/peoples-choice" className="text-gold underline">About People&apos;s Choice</Link></p>
+              <p className="text-stone">Voting is not open for this contestant right now. <Link href="/peoples-choice" className="text-gold-ink underline">About People&apos;s Choice</Link></p>
             )}
           </div>
         </div>
-      </Section>
+      </section>
     </>
   );
 }

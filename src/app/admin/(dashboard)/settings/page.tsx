@@ -132,6 +132,20 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </form>
         </Card>
 
+        <Card title="Photography">
+          <form action={saveSettings} className="space-y-3">
+            <input type="hidden" name="section" value="media" />
+            <p className="text-xs text-mist">Upload approved images in Media, copy their URL here. Leave the hero blank to use the designed stage backdrop. Never use AI-generated portraits or unlicensed stock.</p>
+            <AdminField label="Homepage hero image URL"><input name="heroImage" type="url" defaultValue={s.media.heroImage ?? ""} placeholder="https://" className={adminInput} /></AdminField>
+            <AdminField label="Homepage hero video URL (MP4, muted loop)"><input name="heroVideo" type="url" defaultValue={s.media.heroVideo ?? ""} placeholder="https://" className={adminInput} /></AdminField>
+            <AdminField label="Final call-to-action background image URL"><input name="ctaImage" type="url" defaultValue={s.media.ctaImage ?? ""} placeholder="https://" className={adminInput} /></AdminField>
+            <AdminField label="Legacy gallery" hint="One per line: image URL | caption | alt text (first image is shown large)">
+              <textarea name="legacy" rows={6} className={`${adminInput} font-mono text-xs`} defaultValue={s.media.legacy.map((m) => `${m.src} | ${m.caption} | ${m.alt}`).join("\n")} />
+            </AdminField>
+            <AdminButton type="submit">Save photography</AdminButton>
+          </form>
+        </Card>
+
         <Card title="Key dates (milestones)">
           <form action={saveSettings} className="space-y-3">
             <input type="hidden" name="section" value="milestones" />

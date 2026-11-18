@@ -17,12 +17,12 @@ export function ContestantGallery({ contestants, votingOpen }: { contestants: Pu
     <div>
       <div className="relative mb-8 max-w-md">
         <label htmlFor="contestant-search" className="sr-only">Search contestants by name, number or city</label>
-        <Search aria-hidden className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-mist" />
+        <Search aria-hidden className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone" />
         <input id="contestant-search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, number or city" className={`${inputClasses} pl-11`} />
       </div>
       <p className="sr-only" aria-live="polite">{filtered.length} contestants shown</p>
       {filtered.length === 0 ? (
-        <p className="text-mist">No contestants match “{q}”.</p>
+        <p className="text-stone">No contestants match “{q}”.</p>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((c) => <ContestantCard key={c.id} c={c} votingOpen={votingOpen} />)}

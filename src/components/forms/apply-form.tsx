@@ -193,7 +193,7 @@ export function ApplyForm(props: ApplyFormProps) {
   }
 
   if (!state) {
-    return <div className="flex items-center gap-3 text-mist"><Loader2 className="h-5 w-5 animate-spin" aria-hidden /> Loading application form…</div>;
+    return <div className="flex items-center gap-3 text-stone"><Loader2 className="h-5 w-5 animate-spin" aria-hidden /> Loading application form…</div>;
   }
 
   const errorList = Object.entries(errors);
@@ -205,8 +205,8 @@ export function ApplyForm(props: ApplyFormProps) {
         <ol className="grid grid-cols-4 gap-2">
           {STEPS.map((label, i) => (
             <li key={label} aria-current={i === step ? "step" : undefined}>
-              <div className={cn("h-1", i <= step ? "bg-gold" : "bg-line")} />
-              <p className={cn("mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] sm:text-xs", i === step ? "text-gold" : "text-mist")}>
+              <div className={cn("h-1", i <= step ? "bg-gold" : "bg-espresso/10")} />
+              <p className={cn("mt-2 text-[11px] font-semibold uppercase tracking-[0.12em] sm:text-xs", i === step ? "text-gold-ink" : "text-stone")}>
                 <span className="sr-only">Step {i + 1} of 4: </span>
                 <span aria-hidden>{i + 1}. </span><span className={cn(i === step ? "" : "hidden sm:inline")}>{label}</span>
                 {i < step && <span className="sr-only"> (completed)</span>}
@@ -217,13 +217,13 @@ export function ApplyForm(props: ApplyFormProps) {
       </nav>
 
       <h2 ref={headingRef} tabIndex={-1} className="mb-2 text-3xl outline-none sm:text-4xl">Step {step + 1}: {STEPS[step]}</h2>
-      <p className="mb-8 text-sm text-mist">Fields marked <span className="text-gold">*</span> are required. Your progress is saved in this browser tab.</p>
+      <p className="mb-8 text-sm text-stone">Fields marked <span className="text-gold-ink">*</span> are required. Your progress is saved in this browser tab.</p>
 
       {(errorList.length > 0 || submitError) && (
-        <div ref={errorSummaryRef} tabIndex={-1} role="alert" className="mb-8 border border-danger/60 bg-danger/5 p-5 outline-none">
-          <p className="font-semibold text-danger">{submitError ?? "Please fix the following:"}</p>
+        <div ref={errorSummaryRef} tabIndex={-1} role="alert" className="mb-8 border border-danger-ink/60 bg-danger/5 p-5 outline-none">
+          <p className="font-semibold text-danger-ink">{submitError ?? "Please fix the following:"}</p>
           {errorList.length > 0 && (
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-danger">
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-danger-ink">
               {errorList.map(([k, m]) => <li key={k}>{m}</li>)}
             </ul>
           )}
@@ -248,7 +248,7 @@ export function ApplyForm(props: ApplyFormProps) {
         {step === 3 && <ConsentStep state={state} errors={errors} update={update} {...props} />}
       </div>
 
-      <div className="mt-12 flex flex-col-reverse gap-4 border-t border-line pt-8 sm:flex-row sm:justify-between">
+      <div className="mt-12 flex flex-col-reverse gap-4 border-t border-espresso/15 pt-8 sm:flex-row sm:justify-between">
         {step > 0 ? <Button type="button" variant="secondary" onClick={back} disabled={pending}>Previous</Button> : <span />}
         {step < 3 ? (
           <Button type="button" onClick={next}>Next</Button>
@@ -326,7 +326,7 @@ function TextArea({ name, label, required, state, errors, update, hint }: {
         id={id} rows={6} maxLength={STORY_MAX} value={value} onChange={(e) => update("story", name, e.target.value)} required={required}
         aria-invalid={!!err} aria-describedby={[describedBy(id, hint, err), `${id}-count`].filter(Boolean).join(" ")} className={inputClasses}
       />
-      <p id={`${id}-count`} className="text-right text-xs text-mist" aria-live="polite">{value.length} / {STORY_MAX}</p>
+      <p id={`${id}-count`} className="text-right text-xs text-stone" aria-live="polite">{value.length} / {STORY_MAX}</p>
     </Field>
   );
 }
@@ -336,16 +336,16 @@ function YesNo({ name, legend, required, state, errors, update }: { name: string
   const id = useId();
   return (
     <fieldset aria-describedby={err ? `${id}-err` : undefined}>
-      <legend className="mb-3 text-sm font-semibold">{legend} {required ? <span className="text-gold" aria-hidden>*</span> : <span className="font-normal text-mist">(optional)</span>}</legend>
+      <legend className="mb-3 text-sm font-semibold">{legend} {required ? <span className="text-gold-ink" aria-hidden>*</span> : <span className="font-normal text-stone">(optional)</span>}</legend>
       <div className="flex gap-3">
         {["yes", "no"].map((v) => (
-          <label key={v} className={cn("flex min-h-11 cursor-pointer items-center gap-3 border px-5 py-2", state.story[name] === v ? "border-gold text-gold" : "border-line")}>
-            <input type="radio" name={name} value={v} checked={state.story[name] === v} onChange={() => update("story", name, v)} className="h-4 w-4 accent-[var(--color-gold)]" required={required} />
+          <label key={v} className={cn("flex min-h-11 cursor-pointer items-center gap-3 border px-5 py-2", state.story[name] === v ? "border-gold-deep text-gold-ink" : "border-espresso/15")}>
+            <input type="radio" name={name} value={v} checked={state.story[name] === v} onChange={() => update("story", name, v)} className="h-4 w-4 accent-[var(--color-gold-deep)]" required={required} />
             {v === "yes" ? "Yes" : "No"}
           </label>
         ))}
       </div>
-      {err && <p id={`${id}-err`} className="mt-2 text-sm text-danger" role="alert">{err}</p>}
+      {err && <p id={`${id}-err`} className="mt-2 text-sm text-danger-ink" role="alert">{err}</p>}
     </fieldset>
   );
 }
@@ -354,7 +354,7 @@ function StoryStep({ state, errors, update, guidance }: { state: FormState; erro
   const p = { state, errors, update };
   return (
     <>
-      <p className="border-l-2 border-gold pl-4 text-ivory/90">{guidance}</p>
+      <p className="border-l-2 border-gold-deep pl-4 text-espresso/90">{guidance}</p>
       <TextArea {...p} name="whyEnter" label="Why do you want to enter Mr. IndiaNZ 2027?" required />
       <TextArea {...p} name="kiwiIndianMeaning" label="What does being Kiwi-Indian mean to you?" required />
       <TextArea {...p} name="interests" label="Tell us about your interests, achievements or community work" />
@@ -373,8 +373,8 @@ function MediaStep({ state, errors, guidance, setPhoto, setVideo }: {
   const videoErr = errors["media.videoUrl"];
   return (
     <>
-      <p className="border-l-2 border-gold pl-4 text-ivory/90">{guidance}</p>
-      {errors["media.photos"] && <p className="text-sm text-danger" role="alert">{errors["media.photos"]}</p>}
+      <p className="border-l-2 border-gold-deep pl-4 text-espresso/90">{guidance}</p>
+      {errors["media.photos"] && <p className="text-sm text-danger-ink" role="alert">{errors["media.photos"]}</p>}
       <div className="grid gap-6 md:grid-cols-3">
         <PhotoUpload kind="headshot" label="Recent clear headshot" required state={state} error={errors["media.headshot"]} onChange={setPhoto} />
         <PhotoUpload kind="full_length" label="Recent full-length photograph" required state={state} error={errors["media.full_length"]} onChange={setPhoto} />
@@ -436,18 +436,18 @@ function PhotoUpload({ kind, label, required, state, error, onChange }: {
   return (
     <div className="flex flex-col">
       <p id={`${id}-label`} className="mb-2 text-sm font-semibold">
-        {label} {required ? <span className="text-gold" aria-hidden>*</span> : <span className="font-normal text-mist">(optional)</span>}
+        {label} {required ? <span className="text-gold-ink" aria-hidden>*</span> : <span className="font-normal text-stone">(optional)</span>}
         {required && <span className="sr-only"> (required)</span>}
       </p>
-      <div className={cn("relative flex aspect-[4/5] items-center justify-center overflow-hidden border border-dashed bg-charcoal", err ? "border-danger" : current ? "border-gold" : "border-line")}>
+      <div className={cn("relative flex aspect-[4/5] items-center justify-center overflow-hidden border border-dashed bg-ivory-2", err ? "border-danger-ink" : current ? "border-gold-deep" : "border-espresso/15")}>
         {current?.previewUrl ? (
           <img src={current.previewUrl} alt={`Preview of your ${label.toLowerCase()}`} className="h-full w-full object-cover" />
         ) : current ? (
-          <div className="p-4 text-center text-sm text-ivory"><Check className="mx-auto mb-2 h-8 w-8 text-gold" aria-hidden />Uploaded<br /><span className="break-all text-mist">{current.name}</span></div>
+          <div className="p-4 text-center text-sm text-espresso"><Check className="mx-auto mb-2 h-8 w-8 text-gold-ink" aria-hidden />Uploaded<br /><span className="break-all text-stone">{current.name}</span></div>
         ) : status === "uploading" ? (
-          <div className="text-center text-sm text-mist"><Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin" aria-hidden />Uploading…</div>
+          <div className="text-center text-sm text-stone"><Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin" aria-hidden />Uploading…</div>
         ) : (
-          <div className="p-4 text-center text-sm text-mist"><ImageUp className="mx-auto mb-2 h-8 w-8" aria-hidden />JPG, PNG or WEBP<br />max 5 MB</div>
+          <div className="p-4 text-center text-sm text-stone"><ImageUp className="mx-auto mb-2 h-8 w-8" aria-hidden />JPG, PNG or WEBP<br />max 5 MB</div>
         )}
       </div>
       <input
@@ -469,7 +469,7 @@ function PhotoUpload({ kind, label, required, state, error, onChange }: {
         )}
       </div>
       <p aria-live="polite" className="sr-only">{status === "uploading" ? `Uploading ${label}` : current ? `${label} uploaded` : ""}</p>
-      {err && <p id={`${id}-err`} role="alert" className="mt-2 text-sm text-danger">{err}</p>}
+      {err && <p id={`${id}-err`} role="alert" className="mt-2 text-sm text-danger-ink">{err}</p>}
     </div>
   );
 }
@@ -481,15 +481,15 @@ function ConsentStep({ state, errors, update, feeDisclosure, rehearsalDisplay, f
     { key: "rehearsalAvailability", required: true, label: <>I can attend the compulsory rehearsal weekend, {rehearsalDisplay}.</> },
     { key: "finaleAvailability", required: true, label: <>I can attend the Grand Finale, {finaleDisplay}.</> },
     { key: "feeUnderstanding", required: true, label: <>I understand applying is free and NZD $350 is payable only if selected and accepted.</> },
-    { key: "eligibility", required: true, label: <>I meet the published age, residency, identity and heritage criteria (see <Link href="/competition#eligibility" target="_blank" className="text-gold underline">eligibility</Link>).</> },
+    { key: "eligibility", required: true, label: <>I meet the published age, residency, identity and heritage criteria (see <Link href="/competition#eligibility" target="_blank" className="text-gold-ink underline">eligibility</Link>).</> },
     { key: "accuracy", required: true, label: <>I confirm the information and photographs supplied are mine to submit and accurate.</> },
-    { key: "terms", required: true, label: <>I have read the contestant eligibility, <Link href="/contestant-terms" target="_blank" className="text-gold underline">terms and selection information</Link>.</> },
-    { key: "privacy", required: true, label: <>I acknowledge the <Link href="/privacy" target="_blank" className="text-gold underline">privacy notice</Link> and understand how application data is used.</> },
+    { key: "terms", required: true, label: <>I have read the contestant eligibility, <Link href="/contestant-terms" target="_blank" className="text-gold-ink underline">terms and selection information</Link>.</> },
+    { key: "privacy", required: true, label: <>I acknowledge the <Link href="/privacy" target="_blank" className="text-gold-ink underline">privacy notice</Link> and understand how application data is used.</> },
     { key: "marketing", required: false, label: <>Send me unrelated marketing, event news and announcements.</> },
   ];
   return (
     <>
-      <p className="border border-gold/50 bg-charcoal p-5 text-sm leading-relaxed text-ivory/90">{feeDisclosure}</p>
+      <p className="border border-gold-deep/50 bg-ivory-2 p-5 text-sm leading-relaxed text-espresso/90">{feeDisclosure}</p>
       <fieldset className="space-y-3">
         <legend className="sr-only">Availability, eligibility and consent</legend>
         {items.map((it) => {
@@ -497,16 +497,16 @@ function ConsentStep({ state, errors, update, feeDisclosure, rehearsalDisplay, f
           const id = `consent-${it.key}`;
           return (
             <div key={it.key}>
-              <label htmlFor={id} className={cn("flex cursor-pointer gap-4 border p-4", err ? "border-danger" : state.consent[it.key] ? "border-gold/70" : "border-line")}>
+              <label htmlFor={id} className={cn("flex cursor-pointer gap-4 border p-4", err ? "border-danger-ink" : state.consent[it.key] ? "border-gold-deep/70" : "border-espresso/15")}>
                 <input
                   id={id} type="checkbox" checked={!!state.consent[it.key]} onChange={(e) => update("consent", it.key, e.target.checked)}
-                  className="mt-1 h-5 w-5 shrink-0 accent-[var(--color-gold)]" aria-invalid={!!err} aria-describedby={err ? `${id}-err` : undefined} required={it.required}
+                  className="mt-1 h-5 w-5 shrink-0 accent-[var(--color-gold-deep)]" aria-invalid={!!err} aria-describedby={err ? `${id}-err` : undefined} required={it.required}
                 />
                 <span className="text-sm leading-relaxed">
-                  {it.label} {it.required ? <span className="text-gold" aria-hidden>*</span> : <span className="text-mist">(optional)</span>}
+                  {it.label} {it.required ? <span className="text-gold-ink" aria-hidden>*</span> : <span className="text-stone">(optional)</span>}
                 </span>
               </label>
-              {err && <p id={`${id}-err`} role="alert" className="mt-1 text-sm text-danger">{err}</p>}
+              {err && <p id={`${id}-err`} role="alert" className="mt-1 text-sm text-danger-ink">{err}</p>}
             </div>
           );
         })}

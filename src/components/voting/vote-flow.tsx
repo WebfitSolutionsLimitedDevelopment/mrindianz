@@ -99,15 +99,15 @@ export function VoteFlow(props: VoteFlowProps) {
   }
 
   if (props.packages.length === 0) {
-    return <p className="text-mist">Voting packages will be announced soon.</p>;
+    return <p className="text-stone">Voting packages will be announced soon.</p>;
   }
 
   if (step === "done" && result?.status === "demo_complete") {
     return (
-      <div role="status" className="border border-gold p-6">
+      <div role="status" className="border border-gold-deep p-6">
         <p className="eyebrow">Demo environment</p>
         <h3 className="mt-2 text-3xl">Demo votes recorded</h3>
-        <p className="mt-2 text-mist">{result.votes} demo votes were added for {contestant?.name} (order {result.orderRef}). No payment was taken. Demo votes never appear on the live website.</p>
+        <p className="mt-2 text-stone">{result.votes} demo votes were added for {contestant?.name} (order {result.orderRef}). No payment was taken. Demo votes never appear on the live website.</p>
         <Button type="button" variant="secondary" className="mt-6" onClick={reset}>Vote again</Button>
       </div>
     );
@@ -117,7 +117,7 @@ export function VoteFlow(props: VoteFlowProps) {
     <div className="space-y-8">
       <ol className="flex gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]" aria-label="Voting steps">
         {(["choose", "details", "review"] as const).map((s, i) => (
-          <li key={s} aria-current={step === s ? "step" : undefined} className={cn("flex-1 border-t-2 pt-2", step === s ? "border-gold text-gold" : "border-line text-mist")}>
+          <li key={s} aria-current={step === s ? "step" : undefined} className={cn("flex-1 border-t-2 pt-2", step === s ? "border-gold-deep text-gold-ink" : "border-espresso/15 text-stone")}>
             {i + 1}. {s === "choose" ? "Package" : s === "details" ? "Your details" : "Review"}
           </li>
         ))}
@@ -135,21 +135,21 @@ export function VoteFlow(props: VoteFlowProps) {
             </Field>
           )}
           <fieldset>
-            <legend className="mb-3 text-sm font-semibold">Voting package <span className="text-gold" aria-hidden>*</span></legend>
+            <legend className="mb-3 text-sm font-semibold">Voting package <span className="text-gold-ink" aria-hidden>*</span></legend>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {props.packages.map((p) => (
-                <label key={p.id} className={cn("flex cursor-pointer flex-col border p-4 transition-colors", packageId === p.id ? "border-gold bg-gold/5" : "border-line hover:border-mist")}>
+                <label key={p.id} className={cn("flex cursor-pointer flex-col border p-4 transition-colors", packageId === p.id ? "border-gold-deep bg-gold/5" : "border-espresso/15 hover:border-mist")}>
                   <input type="radio" name="package" value={p.id} checked={packageId === p.id} onChange={() => { setPackageId(p.id); setQuantity(1); }} className="sr-only" />
                   <span className="flex items-baseline justify-between gap-2">
                     <span className="font-display text-2xl">{p.name}</span>
-                    <span className="font-semibold text-gold">{formatCents(p.priceCents)}</span>
+                    <span className="font-semibold text-gold-ink">{formatCents(p.priceCents)}</span>
                   </span>
-                  <span className="mt-1 text-sm text-ivory">{p.votes.toLocaleString("en-NZ")} votes</span>
-                  {p.isDemoValue && <span className="mt-2 text-[10px] uppercase tracking-[0.14em] text-mist">Demonstration value — not approved pricing</span>}
+                  <span className="mt-1 text-sm text-espresso">{p.votes.toLocaleString("en-NZ")} votes</span>
+                  {p.isDemoValue && <span className="mt-2 text-[10px] uppercase tracking-[0.14em] text-stone">Demonstration value — not approved pricing</span>}
                 </label>
               ))}
             </div>
-            {errors.packageId && <p className="mt-2 text-sm text-danger" role="alert">{errors.packageId}</p>}
+            {errors.packageId && <p className="mt-2 text-sm text-danger-ink" role="alert">{errors.packageId}</p>}
           </fieldset>
           <Field id="v-qty" label="Quantity" required hint={`Up to ${maxQty} per purchase.`} error={errors.quantity}>
             <input id="v-qty" type="number" min={1} max={maxQty} value={quantity} inputMode="numeric"
@@ -174,16 +174,16 @@ export function VoteFlow(props: VoteFlowProps) {
             </Field>
           </div>
           <label className="flex cursor-pointer items-start gap-3">
-            <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="mt-1 h-5 w-5 accent-[var(--color-gold)]" />
+            <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="mt-1 h-5 w-5 accent-[var(--color-gold-deep)]" />
             <span className="text-sm">Show me as <strong>Anonymous</strong> in public supporter activity</span>
           </label>
           <div>
             <label className="flex cursor-pointer items-start gap-3">
-              <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-1 h-5 w-5 accent-[var(--color-gold)]"
+              <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-1 h-5 w-5 accent-[var(--color-gold-deep)]"
                 aria-invalid={!!errors.acceptTerms} aria-describedby={errors.acceptTerms ? "v-terms-err" : undefined} />
-              <span className="text-sm">I accept the <Link href="/voting-rules" target="_blank" className="text-gold underline">People&apos;s Choice voting rules</Link> and understand votes are credited only after payment is verified. <span className="text-gold" aria-hidden>*</span></span>
+              <span className="text-sm">I accept the <Link href="/voting-rules" target="_blank" className="text-gold-ink underline">People&apos;s Choice voting rules</Link> and understand votes are credited only after payment is verified. <span className="text-gold-ink" aria-hidden>*</span></span>
             </label>
-            {errors.acceptTerms && <p id="v-terms-err" className="mt-2 text-sm text-danger" role="alert">{errors.acceptTerms}</p>}
+            {errors.acceptTerms && <p id="v-terms-err" className="mt-2 text-sm text-danger-ink" role="alert">{errors.acceptTerms}</p>}
           </div>
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="secondary" onClick={() => setStep("choose")}>Back</Button>
@@ -194,20 +194,20 @@ export function VoteFlow(props: VoteFlowProps) {
 
       {step === "review" && (
         <div className="space-y-6">
-          <dl className="grid gap-4 border border-line p-5 sm:grid-cols-2">
-            <div><dt className="text-xs uppercase tracking-[0.14em] text-mist">Contestant</dt><dd className="mt-1 text-lg">{contestant?.name}</dd></div>
-            <div><dt className="text-xs uppercase tracking-[0.14em] text-mist">Package</dt><dd className="mt-1 text-lg">{pkg?.name} × {quantity}</dd></div>
-            <div><dt className="text-xs uppercase tracking-[0.14em] text-mist">Votes</dt><dd className="mt-1 text-lg">{totalVotes.toLocaleString("en-NZ")}</dd></div>
-            <div><dt className="text-xs uppercase tracking-[0.14em] text-mist">Total</dt><dd className="mt-1 text-lg text-gold">{formatCents(totalCents)}</dd></div>
-            <div><dt className="text-xs uppercase tracking-[0.14em] text-mist">Supporter</dt><dd className="mt-1">{anonymous ? "Anonymous (public)" : name}</dd></div>
-            <div><dt className="text-xs uppercase tracking-[0.14em] text-mist">Receipt to</dt><dd className="mt-1 break-all">{email}</dd></div>
+          <dl className="grid gap-4 border border-espresso/15 p-5 sm:grid-cols-2">
+            <div><dt className="text-xs uppercase tracking-[0.14em] text-stone">Contestant</dt><dd className="mt-1 text-lg">{contestant?.name}</dd></div>
+            <div><dt className="text-xs uppercase tracking-[0.14em] text-stone">Package</dt><dd className="mt-1 text-lg">{pkg?.name} × {quantity}</dd></div>
+            <div><dt className="text-xs uppercase tracking-[0.14em] text-stone">Votes</dt><dd className="mt-1 text-lg">{totalVotes.toLocaleString("en-NZ")}</dd></div>
+            <div><dt className="text-xs uppercase tracking-[0.14em] text-stone">Total</dt><dd className="mt-1 text-lg text-gold-ink">{formatCents(totalCents)}</dd></div>
+            <div><dt className="text-xs uppercase tracking-[0.14em] text-stone">Supporter</dt><dd className="mt-1">{anonymous ? "Anonymous (public)" : name}</dd></div>
+            <div><dt className="text-xs uppercase tracking-[0.14em] text-stone">Receipt to</dt><dd className="mt-1 break-all">{email}</dd></div>
           </dl>
-          {props.priceNote && <p className="text-sm text-mist">{props.priceNote}</p>}
+          {props.priceNote && <p className="text-sm text-stone">{props.priceNote}</p>}
           {result && result.status !== "redirect" && result.status !== "demo_complete" && (
-            <p role="alert" className={cn("border p-4 text-sm", result.status === "payments_disabled" ? "border-gold text-gold" : "border-danger text-danger")}>{result.message}</p>
+            <p role="alert" className={cn("border p-4 text-sm", result.status === "payments_disabled" ? "border-gold-deep text-gold-ink" : "border-danger-ink text-danger-ink")}>{result.message}</p>
           )}
           {!canPay && (
-            <p className="flex items-center gap-2 border border-gold/60 bg-gold/5 p-4 text-sm text-gold" role="note">
+            <p className="flex items-center gap-2 border border-gold-deep/60 bg-gold/5 p-4 text-sm text-gold-ink" role="note">
               <Lock className="h-4 w-4 shrink-0" aria-hidden /> Secure payments coming soon. Payment is not yet available and no votes will be recorded.
             </p>
           )}
@@ -217,7 +217,7 @@ export function VoteFlow(props: VoteFlowProps) {
               {pending ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Processing…</> : props.demoMode ? "Record demo votes (no payment)" : canPay ? `Pay ${formatCents(totalCents)} securely` : "Secure payments coming soon"}
             </Button>
           </div>
-          {props.paymentsReady && <p className="text-xs text-mist">You will be redirected to Stripe&apos;s secure checkout. Card details are never entered on this website.</p>}
+          {props.paymentsReady && <p className="text-xs text-stone">You will be redirected to Stripe&apos;s secure checkout. Card details are never entered on this website.</p>}
         </div>
       )}
     </div>
@@ -229,9 +229,9 @@ function Summary({ pkgName, quantity, totalCents, totalVotes, contestantName, pr
 }) {
   if (!pkgName) return null;
   return (
-    <div className="border-l-2 border-gold bg-charcoal p-4 text-sm" aria-live="polite">
-      <p><strong>{totalVotes.toLocaleString("en-NZ")} votes</strong>{contestantName ? ` for ${contestantName}` : ""} — {pkgName} × {quantity} = <strong className="text-gold">{formatCents(totalCents)}</strong></p>
-      {priceNote && <p className="mt-1 text-mist">{priceNote}</p>}
+    <div className="border-l-2 border-gold-deep bg-ivory-2 p-4 text-sm" aria-live="polite">
+      <p><strong>{totalVotes.toLocaleString("en-NZ")} votes</strong>{contestantName ? ` for ${contestantName}` : ""} — {pkgName} × {quantity} = <strong className="text-gold-ink">{formatCents(totalCents)}</strong></p>
+      {priceNote && <p className="mt-1 text-stone">{priceNote}</p>}
     </div>
   );
 }

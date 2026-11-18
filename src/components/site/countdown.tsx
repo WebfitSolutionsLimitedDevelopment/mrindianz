@@ -13,9 +13,11 @@ export function Countdown({ date, label }: { date: string; label: string }) {
   }, [date]);
   if (days === null || days < 0) return null;
   return (
-    <p className="inline-flex items-baseline gap-3 border-l-2 border-gold pl-4" aria-live="off">
-      <span className="font-display text-5xl leading-none text-gold sm:text-6xl">{days}</span>
-      <span className="text-xs uppercase tracking-[0.2em] text-mist">{days === 1 ? "day" : "days"} {days === 0 ? "— it's today" : `to ${label}`}</span>
-    </p>
+    <div className="inline-flex items-center gap-5 rounded-full border border-gold/30 bg-black/30 py-2.5 pl-3 pr-7 backdrop-blur-sm">
+      <span className="flex h-14 min-w-14 items-center justify-center rounded-full bg-gradient-to-b from-gold-bright to-gold-deep px-3 font-display text-2xl font-semibold text-ink">{days}</span>
+      <span className="text-left text-[11px] uppercase leading-relaxed tracking-[0.22em] text-white/80">
+        {days === 0 ? "It's today" : <>{days === 1 ? "Day" : "Days"} to<br />{label}</>}
+      </span>
+    </div>
   );
 }

@@ -19,12 +19,12 @@ export function ApplicationReceipt({ reference }: { reference: string }) {
 
   const sent = receipt?.emailStatus === "sent" || receipt?.emailStatus === "already_sent";
   return (
-    <div className="space-y-4 text-lg leading-relaxed text-ivory/90">
+    <div className="space-y-4 text-lg leading-relaxed text-espresso/90">
       <p>Thank you for applying to Mr. IndiaNZ 2027. Your application has been received.</p>
       {sent && receipt ? (
-        <p>A confirmation email has been sent to <strong className="break-all text-ivory">{receipt.email}</strong>. Please check your inbox and spam folder.</p>
+        <p>A confirmation email has been sent to <strong className="break-all text-espresso">{receipt.email}</strong>. Please check your inbox and spam folder.</p>
       ) : (
-        <p className="text-mist">Please keep your application reference below. We were not able to confirm that an acknowledgement email was sent.</p>
+        <p className="text-stone">Please keep your application reference below. We were not able to confirm that an acknowledgement email was sent.</p>
       )}
       <p>Our team will contact shortlisted applicants regarding auditions.</p>
     </div>

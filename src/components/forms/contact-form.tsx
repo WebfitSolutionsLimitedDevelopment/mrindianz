@@ -12,16 +12,16 @@ export function ContactForm({ defaultSubject }: { defaultSubject?: string }) {
 
   if (state.status === "success") {
     return (
-      <div role="status" className="border border-gold/60 bg-charcoal p-8">
+      <div role="status" className="border border-gold-deep/60 bg-ivory-2 p-8">
         <h2 className="text-3xl">Thank you — your message has been received.</h2>
-        <p className="mt-3 text-mist">{state.emailed ? "We've sent a confirmation to your email address." : "We'll reply to the email address you provided as soon as possible."}</p>
+        <p className="mt-3 text-stone">{state.emailed ? "We've sent a confirmation to your email address." : "We'll reply to the email address you provided as soon as possible."}</p>
       </div>
     );
   }
 
   return (
     <form action={action} noValidate className="space-y-6">
-      {state.status === "error" && <p role="alert" className="border border-danger/60 p-4 text-danger">{state.message}</p>}
+      {state.status === "error" && <p role="alert" className="border border-danger-ink/60 p-4 text-danger-ink">{state.message}</p>}
       <input type="hidden" name="startedAt" value={startedAt} />
       <div aria-hidden className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label>Leave this field empty<input type="text" name="website" tabIndex={-1} autoComplete="off" /></label>

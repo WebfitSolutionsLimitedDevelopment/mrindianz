@@ -90,6 +90,21 @@ export async function saveSettings(formData: FormData) {
       revalidatePath("/", "layout");
       break;
     }
+    case "media": {
+      const url = z.union([z.literal(""), z.string().url().refine((u) => u.startsWith("https://"), { error: "Images must use https://" })]).transform((v) => v || null);
+      const p = z.object({ heroImage: url, heroVideo: url, ctaImage: url, legacy: z.string().max(5000) }).safeParse(raw);
+      if (!p.success) back(PATH, { error: firstIssue(p.error) });
+      const legacy = p.data.legacy.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+        const [src, caption, alt] = l.split("|").map((x) => x.trim());
+        return { src, caption: caption ?? "", alt: alt || caption || "" };
+      });
+      if (legacy.some((m) => !/^https:\/\//.test(m.src))) back(PATH, { error: "Each photo line must start with an https:// image URL." });
+      const db = await createUserClient();
+      const { error } = await db.from("site_settings").upsert({ key: "media", published: { heroImage: p.data.heroImage, heroVideo: p.data.heroVideo, ctaImage: p.data.ctaImage, legacy: legacy.slice(0, 12) }, published_at: new Date().toISOString() });
+      if (error) back(PATH, { error: "Save failed." });
+      revalidatePath("/", "layout");
+      break;
+    }
     default:
       back(PATH, { error: "Unknown settings section." });
   }
